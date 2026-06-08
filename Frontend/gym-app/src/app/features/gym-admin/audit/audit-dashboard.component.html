@@ -1,0 +1,168 @@
+<div class="saas-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Audit Logs</h1>
+      <p class="saas-page__subtitle">Track system activity and security events</p>
+    </div>
+    @if (auth.hasPermission(permissions.ExportAuditLogs)) {
+      <div class="saas-page__actions">
+        <button class="saas-page__export-btn" type="button" (click)="exportPdf()" [disabled]="exporting()">
+          <mat-icon>picture_as_pdf</mat-icon>
+          Export PDF
+        </button>
+        <button class="saas-page__export-btn" type="button" (click)="exportExcel()" [disabled]="exporting()">
+          <mat-icon>table_chart</mat-icon>
+          Export Excel
+        </button>
+      </div>
+    }
+  </header>
+
+  @if (dashboard) {
+    <section class="kpi-grid">
+      <app-saas-kpi-card label="Total Logs" [value]="dashboard.totalLogs" icon="history" accent="#ff6600" />
+      @for (item of dashboard.byEntity.slice(0, 3); track item.key) {
+        <app-saas-kpi-card [label]="item.key" [value]="item.count" icon="category" [accent]="entityAccent($index)" />
+      }
+    </section>
+  }
+
+  <section class="table-shell">
+    <form class="filter-grid" [formGroup]="filterForm">
+      <label class="search-box filter-grid__search">
+        <mat-icon>search</mat-icon>
+        <input type="search" formControlName="search" placeholder="Search by user name or email..." aria-label="Search audit logs" />
+      </label>
+
+      <label class="filter-date">
+        <span>From</span>
+        <input type="date" formControlName="fromDate" aria-label="From date" />
+      </label>
+
+      <label class="filter-date">
+        <span>To</span>
+        <input type="date" formControlName="toDate" aria-label="To date" />
+      </label>
+
+      <label class="filter-select">
+        <span>Entity</span>
+        <select formControlName="entityName" aria-label="Filter by entity">
+          <option value="">All entities</option>
+          @for (e of entities; track e) {
+            <option [value]="e">{{ e }}</option>
+          }
+        </select>
+        <mat-icon>expand_more</mat-icon>
+      </label>
+
+      <label class="filter-select">
+        <span>Action</span>
+        <select formControlName="actionType" aria-label="Filter by action">
+          <option value="">All actions</option>
+          @for (a of actions; track a) {
+            <option [value]="a">{{ a }}</option>
+          }
+        </select>
+        <mat-icon>expand_more</mat-icon>
+      </label>
+
+      <label class="filter-input">
+        <span>Entity ID</span>
+        <input type="text" formControlName="entityId" placeholder="ID" aria-label="Entity ID" />
+      </label>
+    </form>
+
+    @if (loading()) {
+      <div class="table-loading">
+        <mat-spinner diameter="40" />
+        <p>Loading audit logs…</p>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table mat-table [dataSource]="dataSource" class="saas-table">
+          <ng-container matColumnDef="createdDate">
+            <th mat-header-cell *matHeaderCellDef>When</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="item-cell__text">
+                <strong>{{ row.createdDate | date: 'MMM d, y' }}</strong>
+                <small>{{ row.createdDate | date: 'h:mm a' }}</small>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="user">
+            <th mat-header-cell *matHeaderCellDef>User</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="item-cell">
+                <span class="item-cell__avatar">{{ userInitials(row.userName) }}</span>
+                <div class="item-cell__text">
+                  <strong>{{ row.userName || 'System' }}</strong>
+                  @if (row.userEmail) {
+                    <small>{{ row.userEmail }}</small>
+                  }
+                </div>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="entity">
+            <th mat-header-cell *matHeaderCellDef>Entity</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="entity-cell">
+                <span class="chip">{{ row.entityName }}</span>
+                <span class="entity-cell__id">#{{ row.entityId }}</span>
+              </div>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="action">
+            <th mat-header-cell *matHeaderCellDef>Action</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="action-badge" [class]="actionBadgeClass(row.actionType)">{{ row.actionType }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="ip">
+            <th mat-header-cell *matHeaderCellDef>IP Address</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="mono-text">{{ row.ipAddress || '—' }}</span>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="details">
+            <th mat-header-cell *matHeaderCellDef>Details</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="row-actions">
+                <button
+                  class="row-actions__btn"
+                  type="button"
+                  [matTooltip]="detailTooltip(row)"
+                  matTooltipClass="audit-tooltip"
+                  title="View change details">
+                  <mat-icon>info_outline</mat-icon>
+                </button>
+              </div>
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="saas-row"></tr>
+          <tr class="mat-row empty-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length">No audit logs found.</td>
+          </tr>
+        </table>
+      </div>
+
+      <footer class="table-footer">
+        <mat-paginator
+          [length]="totalCount()"
+          [pageSize]="pageSize"
+          [pageIndex]="pageIndex"
+          [pageSizeOptions]="[10, 20, 50]"
+          showFirstLastButtons
+          (page)="onPage($event)" />
+        <p class="table-footer__summary">{{ pageSummary }}</p>
+      </footer>
+    }
+  </section>
+</div>

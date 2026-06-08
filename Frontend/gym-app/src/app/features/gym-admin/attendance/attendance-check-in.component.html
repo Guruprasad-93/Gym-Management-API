@@ -1,0 +1,42 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Member Check-In</h1>
+      <p class="saas-page__subtitle">Start an attendance session for a member</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-secondary" routerLink="../">Back to Attendance</a>
+    </div>
+  </header>
+
+  <section class="panel-shell form-panel">
+    <div class="panel-shell__head">
+      <h2>Check-in details</h2>
+      <p>Select a member and optionally add notes</p>
+    </div>
+    <div class="panel-shell__body">
+      <form [formGroup]="form" (ngSubmit)="submit()" class="form-grid">
+        <label class="form-field form-field--wide">
+          <span>Member</span>
+          <select formControlName="memberId">
+            <option [ngValue]="0" disabled>Select member…</option>
+            @for (m of members(); track m.id) {
+              <option [ngValue]="m.id">{{ m.fullName }}</option>
+            }
+          </select>
+        </label>
+        <label class="form-field form-field--wide">
+          <span>Notes (optional)</span>
+          <input type="text" formControlName="notes" placeholder="Any notes for this session" />
+        </label>
+        <div class="form-actions form-field--wide">
+          <button class="btn-primary" type="submit" [disabled]="form.invalid || saving()">
+            <mat-icon>login</mat-icon>
+            Check In
+          </button>
+          <a class="btn-secondary" routerLink="../">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </section>
+</div>

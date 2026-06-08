@@ -1,0 +1,24 @@
+{
+  "profiles": {
+    "http": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Jwt__Secret": "YOUR_SECRET_AT_LEAST_32_CHARACTERS_LONG",
+        "Bootstrap__SuperAdminPassword": "CHANGE_ME_ON_FIRST_DEPLOY"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://localhost:5088"
+    },
+    "https": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "Jwt__Secret": "YOUR_SECRET_AT_LEAST_32_CHARACTERS_LONG",
+        "Bootstrap__SuperAdminPassword": "CHANGE_ME_ON_FIRST_DEPLOY"
+      },
+      "dotnetRunMessages": true,
+      "applicationUrl": "https://localhost:7033;http://localhost:5088"
+    }
+  }
+}

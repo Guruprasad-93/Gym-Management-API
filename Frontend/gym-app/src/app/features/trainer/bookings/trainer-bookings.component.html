@@ -1,0 +1,79 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Class Bookings</h1>
+      <p class="saas-page__subtitle">Members booked for your sessions</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-secondary" routerLink="/trainer/schedule">
+        <mat-icon>calendar_month</mat-icon>
+        My Schedule
+      </a>
+    </div>
+  </header>
+
+  @if (!loading && bookings.length) {
+    <div class="kpi-grid">
+      <app-saas-kpi-card label="Total" [value]="bookings.length" icon="event_note" accent="#ff6600" hint="Bookings" />
+      <app-saas-kpi-card label="Confirmed" [value]="confirmedCount" icon="check_circle" accent="#12b76a" hint="Active" />
+      <app-saas-kpi-card label="Waitlisted" [value]="waitlistedCount" icon="hourglass_top" accent="#f79009" hint="Pending" />
+    </div>
+  }
+
+  <section class="table-shell">
+    <div class="table-toolbar">
+      <label class="search-box">
+        <mat-icon>search</mat-icon>
+        <input type="search" [(ngModel)]="search" placeholder="Search member or class…" aria-label="Search bookings" />
+      </label>
+      <div class="table-toolbar__filters">
+        <label class="filter-select">
+          <span>Status</span>
+          <select [(ngModel)]="statusFilter" aria-label="Filter by status">
+            <option value="all">All</option>
+            <option value="Confirmed">Confirmed</option>
+            <option value="Completed">Completed</option>
+            <option value="Waitlisted">Waitlisted</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+          <mat-icon>expand_more</mat-icon>
+        </label>
+      </div>
+    </div>
+
+    @if (loading) {
+      <div class="page-loading">
+        <mat-spinner diameter="36" />
+        <p>Loading bookings…</p>
+      </div>
+    } @else if (filteredBookings.length) {
+      <div class="list-shell" style="border: none; box-shadow: none; border-radius: 0;">
+        @for (b of filteredBookings; track b.id) {
+          <div class="list-row">
+            <div class="item-cell">
+              <span class="item-cell__avatar">{{ memberInitials(b.memberName) }}</span>
+              <div class="list-row__main">
+                <strong>{{ b.memberName }}</strong>
+                <span>{{ b.className }} · {{ b.bookingDate | date: 'mediumDate' }}</span>
+                <small>{{ b.branchName }} · {{ b.startTime }} – {{ b.endTime }}</small>
+              </div>
+            </div>
+            <span
+              class="status-badge"
+              [class.status-badge--active]="b.status === 'Confirmed'"
+              [class.status-badge--completed]="b.status === 'Completed'"
+              [class.status-badge--warn]="b.status === 'Waitlisted' || b.status === 'Cancelled'"
+              [class.status-badge--muted]="b.status !== 'Confirmed' && b.status !== 'Completed' && b.status !== 'Waitlisted' && b.status !== 'Cancelled'">
+              {{ b.status }}
+            </span>
+          </div>
+        }
+      </div>
+      <footer class="table-footer">
+        <p class="table-footer__summary">{{ filteredBookings.length }} of {{ bookings.length }} booking{{ bookings.length === 1 ? '' : 's' }}</p>
+      </footer>
+    } @else {
+      <p class="empty-state">{{ bookings.length ? 'No bookings match your filters.' : 'No bookings found for your classes.' }}</p>
+    }
+  </section>
+</div>

@@ -1,0 +1,85 @@
+<div class="member-page subscription-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Subscription</h1>
+      <p class="saas-page__subtitle">Manage your SaaS plan and billing</p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading">
+      <mat-spinner diameter="36" />
+      <p>Loading subscription…</p>
+    </div>
+  } @else {
+    @if (subscription(); as sub) {
+      @if (!sub.hasAccess) {
+        <div class="hint-box">
+          Your subscription has expired. Upgrade to restore access.
+        </div>
+      }
+
+      <div class="kpi-grid">
+        <app-saas-kpi-card label="Current Plan" [value]="sub.planName" icon="card_membership" accent="#ff6600" />
+        <app-saas-kpi-card label="Status" [value]="sub.status" icon="info" accent="#2e90fa" />
+        @if (sub.remainingTrialDays != null) {
+          <app-saas-kpi-card label="Trial Days Left" [value]="sub.remainingTrialDays!" icon="schedule" accent="#f79009" />
+        }
+        <app-saas-kpi-card label="Members" [value]="usage()?.memberCount ?? 0" icon="groups" accent="#12b76a" />
+        <app-saas-kpi-card label="Trainers" [value]="usage()?.trainerCount ?? 0" icon="sports" accent="#7a5af8" />
+      </div>
+    }
+
+    <section class="panel-shell">
+      <div class="panel-shell__head">
+        <h2>Available Plans</h2>
+        <p>Choose a billing cycle to upgrade</p>
+      </div>
+      <div class="panel-shell__body">
+        <div class="plan-grid">
+          @for (plan of plans(); track plan.id) {
+            @if (plan.planCode !== 'Trial') {
+              <article class="plan-card">
+                <header class="plan-card__head">
+                  <h3>{{ plan.planName }}</h3>
+                  <span class="chip">{{ plan.planCode }}</span>
+                </header>
+                <ul class="plan-card__features">
+                  <li>{{ plan.maxMembers < 0 ? 'Unlimited' : plan.maxMembers }} members</li>
+                  <li>{{ plan.maxTrainers < 0 ? 'Unlimited' : plan.maxTrainers }} trainers</li>
+                  <li>{{ plan.storageLimitMb }} MB storage</li>
+                  <li>{{ plan.whatsAppNotificationLimit }} WhatsApp/mo</li>
+                </ul>
+                <div class="plan-card__pricing">
+                  <div>
+                    <strong>{{ plan.monthlyPrice | currency:'INR' }}</strong>
+                    <span>/ month</span>
+                  </div>
+                  <div class="plan-card__yearly">
+                    {{ plan.yearlyPrice | currency:'INR' }} / year
+                  </div>
+                </div>
+                <footer class="plan-card__actions">
+                  <button class="btn-secondary" type="button" (click)="upgrade(plan.id, 'Monthly')" [disabled]="paying()">
+                    Monthly
+                  </button>
+                  <button class="btn-primary" type="button" (click)="upgrade(plan.id, 'Yearly')" [disabled]="paying()">
+                    Yearly
+                  </button>
+                </footer>
+              </article>
+            }
+          }
+        </div>
+      </div>
+    </section>
+
+    @if (subscription()?.status === 'Active') {
+      <div class="cancel-section">
+        <button class="btn-secondary btn-secondary--warn" type="button" (click)="cancel()">
+          Cancel at period end
+        </button>
+      </div>
+    }
+  }
+</div>

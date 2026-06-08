@@ -1,0 +1,33 @@
+@import '../../../shared/styles/member-page.css';
+
+.date-cell {
+  display: block;
+  font-size: 0.875rem;
+  color: #101828;
+}
+
+.time-cell {
+  display: block;
+  font-size: 0.75rem;
+  color: #667085;
+  margin-top: 0.15rem;
+}
+
+.status-badge--confirmed {
+  background: #ecfdf3;
+  color: #027a48;
+}
+
+.status-badge--cancelled {
+  background: #fef3f2;
+  color: #b42318;
+}
+
+.status-badge--noshow {
+  background: #fff6ed;
+  color: #c4320a;
+}
+
+.table-footer {
+  justify-content: flex-end;
+}

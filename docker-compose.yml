@@ -1,0 +1,48 @@
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "GymDb@Dev123!"
+    ports:
+      - "1433:1433"
+    volumes:
+      - gym-sql-data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "GymDb@Dev123!" -C -Q "SELECT 1" || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5088:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: "Server=sqlserver;Database=GymDb;User Id=sa;Password=GymDb@Dev123!;TrustServerCertificate=True"
+      Jwt__Secret: "DevOnlySecretKey_ChangeInProduction_32chars!"
+      Jwt__Issuer: GymManagementSystem
+      Jwt__Audience: GymManagementSystem
+      Database__RunMigrationsOnStartup: "true"
+      Database__RunSeedOnStartup: "true"
+      Cors__AllowedOrigins__0: "http://localhost:4200"
+      Demo__Enabled: "true"
+      Demo__Password: "Demo@123"
+      Bootstrap__SuperAdminEmail: "superadmin@gym.com"
+      Bootstrap__SuperAdminPassword: "SuperAdmin@123"
+      FileStorage__Provider: Local
+      FileStorage__LocalRootPath: /app/uploads
+      AuthCookies__UseCookieAuth: "true"
+    volumes:
+      - gym-uploads:/app/uploads
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+
+volumes:
+  gym-sql-data:
+  gym-uploads:

@@ -1,0 +1,26 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Booking History</h1>
+      <p class="saas-page__subtitle">Your past and upcoming reservations</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-primary" routerLink="/member/bookings">Book a Class</a>
+    </div>
+  </header>
+
+  <section class="list-shell">
+    @for (b of bookings; track b.id) {
+      <div class="list-row">
+        <div class="list-row__main">
+          <strong>{{ b.className }}</strong>
+          <span>{{ b.bookingDate | date: 'mediumDate' }} · {{ b.startTime }}</span>
+          <small>{{ b.branchName }} · {{ b.trainerName }}</small>
+        </div>
+        <span class="status-badge" [class.status-badge--active]="b.status === 'Confirmed'" [class.status-badge--completed]="b.status === 'Completed'" [class.status-badge--warn]="b.status === 'Waitlisted'" [class.status-badge--muted]="b.status !== 'Confirmed' && b.status !== 'Completed' && b.status !== 'Waitlisted'">{{ b.status }}</span>
+      </div>
+    } @empty {
+      <p class="empty-state">No bookings yet. <a routerLink="/member/bookings">Book a class</a></p>
+    }
+  </section>
+</div>

@@ -1,0 +1,167 @@
+<div class="member-page analytics-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Attendance Analytics</h1>
+      <p class="saas-page__subtitle">Check-in trends and member activity insights</p>
+    </div>
+    <div class="member-page__actions">
+      @if (auth.hasPermission(permissions.ViewAnalytics)) {
+        <button class="btn-secondary" type="button" (click)="exportPdf()" [disabled]="exporting()">
+          <mat-icon>picture_as_pdf</mat-icon>
+          Export PDF
+        </button>
+        <button class="btn-secondary" type="button" (click)="exportExcel()" [disabled]="exporting()">
+          <mat-icon>table_chart</mat-icon>
+          Export Excel
+        </button>
+      }
+      <a class="btn-secondary" routerLink="/gym-admin">
+        <mat-icon>dashboard</mat-icon>
+        Dashboard
+      </a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading">
+      <mat-spinner diameter="36" />
+      <p>Loading attendance analytics…</p>
+    </div>
+  } @else if (data()) {
+    @let att = data()!;
+    <div class="kpi-grid kpi-grid--4">
+      <app-saas-kpi-card label="Today's Check-ins" [value]="att.todayAttendanceCount" icon="event_available" accent="#ff6600" />
+      <app-saas-kpi-card label="Unique Today" [value]="att.uniqueMembersToday" icon="groups" accent="#12b76a" />
+      <app-saas-kpi-card label="This Week" [value]="weeklyTotal(att)" icon="date_range" accent="#2e90fa" hint="Total check-ins" />
+      <app-saas-kpi-card label="This Month" [value]="monthlyTotal(att)" icon="calendar_month" accent="#7a5af8" hint="Total check-ins" />
+    </div>
+
+    <section class="charts-row">
+      <app-saas-chart-card class="charts-row__wide" title="Weekly Trend" subtitle="Check-ins by day">
+        <div class="chart-host">
+          <canvas #weeklyChart></canvas>
+          @if (!att.weeklyTrend.length) {
+            <p class="chart-empty chart-empty--overlay">No weekly attendance data.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+
+      <app-saas-chart-card title="Monthly Trend" subtitle="Check-ins by month">
+        <div class="chart-host">
+          <canvas #monthlyChart></canvas>
+          @if (!att.monthlyTrend.length) {
+            <p class="chart-empty chart-empty--overlay">No monthly attendance data.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+
+      <app-saas-chart-card title="Top Members" subtitle="Most active this period">
+        <div class="chart-host">
+          <canvas #activeChart></canvas>
+          @if (!att.mostActiveMembers.length) {
+            <p class="chart-empty chart-empty--overlay">No active member data.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+    </section>
+
+    <div class="panels-grid">
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>Weekly Breakdown</h2>
+          <p>Day-by-day check-in counts</p>
+        </div>
+        <div class="panel-shell__body panel-shell__body--flush">
+          @if (att.weeklyTrend.length) {
+            <ul class="data-list">
+              @for (d of att.weeklyTrend; track d.dayLabel) {
+                <li>
+                  <span>{{ d.dayLabel }}</span>
+                  <strong>{{ d.count }} check-ins</strong>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-state">No weekly attendance data.</p>
+          }
+        </div>
+      </section>
+
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>Most Active</h2>
+          <p>Members with highest visit count</p>
+        </div>
+        <div class="panel-shell__body panel-shell__body--flush">
+          @if (att.mostActiveMembers.length) {
+            <ul class="data-list">
+              @for (m of att.mostActiveMembers; track m.memberId) {
+                <li>
+                  <div class="item-cell">
+                    <span class="item-cell__avatar">{{ memberInitials(m.memberName) }}</span>
+                    <span>{{ m.memberName }}</span>
+                  </div>
+                  <strong>{{ m.attendanceCount }} visits</strong>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-state">No active member data.</p>
+          }
+        </div>
+      </section>
+
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>Least Active</h2>
+          <p>Members needing engagement</p>
+        </div>
+        <div class="panel-shell__body panel-shell__body--flush">
+          @if (att.leastActiveMembers.length) {
+            <ul class="data-list">
+              @for (m of att.leastActiveMembers; track m.memberId) {
+                <li>
+                  <div class="item-cell">
+                    <span class="item-cell__avatar">{{ memberInitials(m.memberName) }}</span>
+                    <span>{{ m.memberName }}</span>
+                  </div>
+                  <strong>{{ m.attendanceCount }} visits</strong>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-state">No inactive member data.</p>
+          }
+        </div>
+      </section>
+
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>Attendance %</h2>
+          <p>Member attendance rate</p>
+        </div>
+        <div class="panel-shell__body panel-shell__body--flush">
+          @if (att.attendancePercentage.length) {
+            <ul class="data-list">
+              @for (m of att.attendancePercentage; track m.memberId) {
+                <li>
+                  <span>{{ m.memberName }}</span>
+                  <strong>{{ m.attendancePercentage }}%</strong>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-state">No attendance percentage data.</p>
+          }
+        </div>
+      </section>
+    </div>
+  } @else {
+    <section class="panel-shell">
+      <div class="page-loading">
+        <mat-icon class="empty-icon">event_available</mat-icon>
+        <p>Unable to load attendance analytics.</p>
+      </div>
+    </section>
+  }
+</div>

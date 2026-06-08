@@ -1,0 +1,42 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Workout Tracking</h1>
+      <p class="saas-page__subtitle">Log completion and build your streak</p>
+    </div>
+    <div class="member-page__badge"><mat-icon>local_fire_department</mat-icon>{{ streak() }} day streak</div>
+  </header>
+
+  <section class="panel-shell">
+    <div class="panel-shell__head"><h2>Log Workout</h2><p>Mark today's workout as complete</p></div>
+    <div class="panel-shell__body">
+      <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
+        <label class="form-field"><span>Plan ID</span><input type="number" formControlName="workoutPlanId" /></label>
+        <label class="form-field"><span>Completion %</span><input type="number" formControlName="completionPercentage" min="0" max="100" /></label>
+        <label class="form-field form-field--wide"><span>Notes</span><input type="text" formControlName="exerciseCompleted" placeholder="Exercises completed..." /></label>
+        <div class="form-actions"><button class="btn-primary" type="submit">Mark Complete</button></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="chart-section">
+    <app-saas-chart-card title="Workout Compliance" subtitle="Completion percentage by session">
+      <canvas #chartRef></canvas>
+    </app-saas-chart-card>
+  </section>
+
+  <section class="list-shell">
+    @for (w of workouts(); track w.workoutTrackingId) {
+      <div class="list-row">
+        <div class="list-row__main">
+          <strong>{{ w.workoutPlanName ?? 'Workout' }}</strong>
+          <span>{{ w.workoutDate | date: 'mediumDate' }} · {{ w.completionPercentage }}% complete</span>
+          @if (w.exerciseCompleted) { <small>{{ w.exerciseCompleted }}</small> }
+        </div>
+        <span class="status-badge status-badge--active">{{ w.completionPercentage }}%</span>
+      </div>
+    } @empty {
+      <p class="empty-state">No workouts logged yet.</p>
+    }
+  </section>
+</div>

@@ -1,0 +1,59 @@
+<div class="member-page website-analytics-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Website Analytics</h1>
+      <p class="saas-page__subtitle">Leads and conversion from your public site</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-secondary" routerLink="/gym-admin/website-builder">
+        <mat-icon>language</mat-icon>
+        Website Builder
+      </a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading">
+      <mat-spinner diameter="36" />
+      <p>Loading website analytics…</p>
+    </div>
+  } @else if (analytics()) {
+    @let a = analytics()!;
+    <div class="kpi-grid">
+      <app-saas-kpi-card label="Total Leads" [value]="a.totalWebsiteLeads" icon="groups" accent="#ff6600" />
+      <app-saas-kpi-card label="Trial Requests" [value]="a.trialRequests" icon="event" accent="#7a5af8" />
+      <app-saas-kpi-card label="Conversion Rate" [value]="a.leadConversionRate + '%'" icon="trending_up" accent="#12b76a" />
+      <app-saas-kpi-card label="Leads (30 days)" [value]="a.leadsInPeriod" icon="insights" accent="#2e90fa" />
+    </div>
+
+    <section class="charts-row">
+      <app-saas-chart-card class="charts-row__wide" title="Daily Leads" subtitle="Last 30 days">
+        <div class="chart-host">
+          <canvas #dailyChart></canvas>
+          @if (!a.dailyLeads.length) {
+            <p class="chart-empty chart-empty--overlay">No daily lead data yet.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+    </section>
+
+    @if (a.topSources.length) {
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>Top Lead Sources</h2>
+          <p>Where website visitors come from</p>
+        </div>
+        <div class="panel-shell__body panel-shell__body--flush">
+          <ul class="data-list">
+            @for (src of a.topSources; track src.name) {
+              <li>
+                <span>{{ src.name }}</span>
+                <strong>{{ src.count }}</strong>
+              </li>
+            }
+          </ul>
+        </div>
+      </section>
+    }
+  }
+</div>

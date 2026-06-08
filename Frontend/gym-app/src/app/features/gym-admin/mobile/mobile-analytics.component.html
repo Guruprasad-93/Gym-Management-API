@@ -1,0 +1,78 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Mobile Push Analytics</h1>
+      <p class="saas-page__subtitle">Delivery and engagement statistics</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-primary" routerLink="../mobile-notifications">
+        <mat-icon>send</mat-icon>
+        Send Notification
+      </a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading">
+      <mat-spinner diameter="36" />
+      <p>Loading push analytics…</p>
+    </div>
+  } @else if (analytics()) {
+    @let a = analytics()!;
+    <div class="kpi-grid">
+      <app-saas-kpi-card label="Delivered" [value]="a.totalDelivered" icon="check_circle" accent="#12b76a" />
+      <app-saas-kpi-card label="Failed" [value]="a.totalFailed" icon="error" accent="#f04438" />
+      <app-saas-kpi-card label="Opened" [value]="a.totalOpened" icon="visibility" accent="#2e90fa" />
+      <app-saas-kpi-card label="Clicked" [value]="a.totalClicked" icon="touch_app" accent="#7a5af8" />
+      <app-saas-kpi-card label="Pending" [value]="a.totalPending" icon="schedule" accent="#f79009" />
+      <app-saas-kpi-card label="Active Devices" [value]="a.activeDevices" icon="phonelink" accent="#ff6600" />
+    </div>
+
+    <section class="table-shell">
+      <div class="table-shell__head">
+        <div>
+          <h2>Campaign History</h2>
+          <p>Recent push notification campaigns</p>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table mat-table [dataSource]="campaigns()" class="saas-table">
+          <ng-container matColumnDef="title">
+            <th mat-header-cell *matHeaderCellDef>Campaign</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="item-cell">
+                <span class="item-cell__avatar"><mat-icon>campaign</mat-icon></span>
+                <div class="item-cell__text">
+                  <strong>{{ row.title }}</strong>
+                  <small>{{ row.message }}</small>
+                </div>
+              </div>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="sentDate">
+            <th mat-header-cell *matHeaderCellDef>Sent</th>
+            <td mat-cell *matCellDef="let row">{{ row.sentDate | date:'MMM d, y h:mm a' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="recipientCount">
+            <th mat-header-cell *matHeaderCellDef>Recipients</th>
+            <td mat-cell *matCellDef="let row">{{ row.recipientCount }}</td>
+          </ng-container>
+          <ng-container matColumnDef="sentCount">
+            <th mat-header-cell *matHeaderCellDef>Delivered</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="chip">{{ row.sentCount }}</span>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="saas-row"></tr>
+          <tr class="mat-row empty-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length">No campaigns sent yet.</td>
+          </tr>
+        </table>
+      </div>
+      <footer class="table-footer">
+        <p class="table-footer__summary">{{ campaigns().length }} campaign{{ campaigns().length === 1 ? '' : 's' }}</p>
+      </footer>
+    </section>
+  }
+</div>

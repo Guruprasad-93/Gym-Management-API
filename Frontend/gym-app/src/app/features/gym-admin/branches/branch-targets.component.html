@@ -1,0 +1,100 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Branch Targets</h1>
+      <p class="saas-page__subtitle">Monthly goals and achievement tracking</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-secondary" routerLink="/gym-admin/branches">
+        <mat-icon>store</mat-icon>
+        Branches
+      </a>
+    </div>
+  </header>
+
+  <section class="panel-shell">
+    <div class="panel-shell__head">
+      <h2>Set Target</h2>
+      <p>Define monthly revenue, member, and lead goals</p>
+    </div>
+    <div class="panel-shell__body">
+      <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
+        <label class="form-field">
+          <span>Branch</span>
+          <select formControlName="branchId">
+            <option [ngValue]="0" disabled>Select branch</option>
+            @for (b of branches(); track b.branchId) {
+              <option [ngValue]="b.branchId">{{ b.branchName }}</option>
+            }
+          </select>
+        </label>
+        <label class="form-field">
+          <span>Target month</span>
+          <input type="month" formControlName="targetMonth" />
+        </label>
+        <label class="form-field">
+          <span>Revenue target (INR)</span>
+          <input type="number" formControlName="revenueTarget" min="0" />
+        </label>
+        <label class="form-field">
+          <span>New members target</span>
+          <input type="number" formControlName="newMembersTarget" min="0" />
+        </label>
+        <label class="form-field">
+          <span>Lead conversions target</span>
+          <input type="number" formControlName="leadConversionsTarget" min="0" />
+        </label>
+        <div class="form-actions">
+          <button class="btn-primary" type="submit" [disabled]="form.invalid">
+            <mat-icon>save</mat-icon>
+            Save Target
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <div class="targets-grid">
+    @for (t of targets(); track t.targetId) {
+      <article class="target-card">
+        <header class="target-card__head">
+          <div class="item-cell">
+            <span class="item-cell__avatar"><mat-icon>flag</mat-icon></span>
+            <div class="item-cell__text">
+              <strong>{{ t.branchName }}</strong>
+              <small>{{ t.targetMonth | date:'MMMM yyyy' }}</small>
+            </div>
+          </div>
+        </header>
+        <div class="target-card__metrics">
+          <div class="target-metric">
+            <div class="target-metric__label">
+              <span>Revenue</span>
+              <strong>{{ t.revenueAchievementPercent }}%</strong>
+            </div>
+            <div class="progress-bar"><div class="progress-bar__fill" [style.width.%]="Math.min(t.revenueAchievementPercent, 100)"></div></div>
+            <small>{{ t.actualRevenue | currency:'INR' }} / {{ t.revenueTarget | currency:'INR' }}</small>
+          </div>
+          <div class="target-metric">
+            <div class="target-metric__label">
+              <span>New Members</span>
+              <strong>{{ t.membersAchievementPercent }}%</strong>
+            </div>
+            <div class="progress-bar"><div class="progress-bar__fill" [style.width.%]="Math.min(t.membersAchievementPercent, 100)"></div></div>
+            <small>{{ t.actualNewMembers }} / {{ t.newMembersTarget }}</small>
+          </div>
+          <div class="target-metric">
+            <div class="target-metric__label">
+              <span>Lead Conversions</span>
+              <strong>{{ t.leadsAchievementPercent }}%</strong>
+            </div>
+            <div class="progress-bar"><div class="progress-bar__fill" [style.width.%]="Math.min(t.leadsAchievementPercent, 100)"></div></div>
+            <small>{{ t.actualLeadConversions }} / {{ t.leadConversionsTarget }}</small>
+          </div>
+        </div>
+      </article>
+    } @empty {
+      <p class="empty-state">No targets set yet. Create one above.</p>
+    }
+  </div>
+</div>

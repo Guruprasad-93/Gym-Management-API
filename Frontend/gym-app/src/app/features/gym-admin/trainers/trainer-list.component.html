@@ -1,0 +1,125 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Trainers</h1>
+      <p class="saas-page__subtitle">Manage gym trainers and member assignments</p>
+    </div>
+    <div class="member-page__actions">
+      @if (auth.hasPermission(permissions.CreateTrainer)) {
+        <button class="btn-primary" type="button" (click)="openCreate()">
+          <mat-icon>person_add</mat-icon>
+          Add Trainer
+        </button>
+      }
+    </div>
+  </header>
+
+  <section class="table-shell">
+    <div class="table-toolbar">
+      <label class="search-box">
+        <mat-icon>search</mat-icon>
+        <input
+          type="search"
+          [formControl]="searchControl"
+          placeholder="Search name, email, specialization..."
+          aria-label="Search trainers" />
+      </label>
+      <div class="table-toolbar__filters">
+        <label class="filter-checkbox">
+          <input type="checkbox" [formControl]="includeInactiveControl" />
+          <span>Include inactive</span>
+        </label>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="page-loading">
+        <mat-spinner diameter="36" />
+        <p>Loading trainers…</p>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table mat-table [dataSource]="dataSource" matSort (matSortChange)="onSort($event)" class="saas-table">
+          <ng-container matColumnDef="fullName">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Name</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="item-cell">
+                <span class="item-cell__avatar">{{ trainerInitials(row.fullName) }}</span>
+                <div class="item-cell__text">
+                  <a class="trainer-link" [routerLink]="[row.id]">{{ row.fullName || '—' }}</a>
+                  @if (row.email) {
+                    <small>{{ row.email }}</small>
+                  }
+                </div>
+              </div>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="specialization">
+            <th mat-header-cell *matHeaderCellDef mat-sort-header>Specialization</th>
+            <td mat-cell *matCellDef="let row">
+              @if (row.specialization) {
+                <span class="chip">{{ row.specialization }}</span>
+              } @else {
+                —
+              }
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="members">
+            <th mat-header-cell *matHeaderCellDef>Members</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="member-count">{{ row.assignedMemberCount }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="status-badge" [class.status-badge--active]="row.isActive" [class.status-badge--warn]="!row.isActive">
+                {{ row.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="row-actions">
+                <a class="row-actions__btn" [routerLink]="[row.id]" title="View details">
+                  <mat-icon>visibility</mat-icon>
+                </a>
+                @if (auth.hasPermission(permissions.UpdateTrainer)) {
+                  <button class="row-actions__btn" type="button" (click)="openEdit(row)" title="Edit">
+                    <mat-icon>edit</mat-icon>
+                  </button>
+                }
+                @if (auth.hasPermission(permissions.AssignMemberToTrainer)) {
+                  <button class="row-actions__btn" type="button" (click)="openAssign(row)" title="Assign members">
+                    <mat-icon>group_add</mat-icon>
+                  </button>
+                }
+                @if (row.isActive && auth.hasPermission(permissions.DeleteTrainer)) {
+                  <button class="row-actions__btn row-actions__btn--warn" type="button" (click)="deactivate(row)" title="Deactivate">
+                    <mat-icon>block</mat-icon>
+                  </button>
+                }
+              </div>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="saas-row"></tr>
+          <tr class="mat-row empty-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length">No trainers found.</td>
+          </tr>
+        </table>
+      </div>
+      <footer class="table-footer">
+        <mat-paginator
+          [length]="totalCount()"
+          [pageSize]="pageSize"
+          [pageIndex]="pageIndex"
+          [pageSizeOptions]="[5, 10, 25, 50]"
+          (page)="onPage($event)"
+          showFirstLastButtons />
+        <p class="table-footer__summary">{{ pageSummary }}</p>
+      </footer>
+    }
+  </section>
+</div>

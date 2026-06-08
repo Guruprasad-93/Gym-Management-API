@@ -1,0 +1,87 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Branch Transfers</h1>
+      <p class="saas-page__subtitle">Move members and trainers between branches</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-secondary" routerLink="/gym-admin/branches">
+        <mat-icon>store</mat-icon>
+        Branches
+      </a>
+    </div>
+  </header>
+
+  <section class="panel-shell">
+    <div class="panel-shell__head">
+      <h2>New Transfer</h2>
+      <p>Select entity type, ID, and destination branch</p>
+    </div>
+    <div class="panel-shell__body">
+      <form [formGroup]="form" (ngSubmit)="transfer()" class="form-grid">
+        <label class="form-field">
+          <span>Type</span>
+          <select formControlName="type">
+            <option value="Member">Member</option>
+            <option value="Trainer">Trainer</option>
+          </select>
+        </label>
+        <label class="form-field">
+          <span>Entity ID</span>
+          <input type="number" formControlName="entityId" min="1" />
+        </label>
+        <label class="form-field">
+          <span>To branch</span>
+          <select formControlName="toBranchId">
+            <option [ngValue]="0" disabled>Select branch</option>
+            @for (b of branches(); track b.branchId) {
+              <option [ngValue]="b.branchId">{{ b.branchName }}</option>
+            }
+          </select>
+        </label>
+        <div class="form-actions">
+          <button class="btn-primary" type="submit" [disabled]="form.invalid">
+            <mat-icon>swap_horiz</mat-icon>
+            Transfer
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="table-shell">
+    <div class="table-shell__head">
+      <div>
+        <h2>Transfer History</h2>
+        <p>Recent member and trainer moves</p>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Entity</th>
+            <th>From</th>
+            <th>To</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (t of history(); track t.transferId) {
+            <tr>
+              <td>{{ t.transferDate | date:'MMM d, y h:mm a' }}</td>
+              <td>
+                <span class="chip">{{ t.entityType }}</span>
+                <strong class="entity-name">{{ t.entityName || ('#' + t.entityId) }}</strong>
+              </td>
+              <td>{{ t.fromBranchName || '—' }}</td>
+              <td>{{ t.toBranchName || '—' }}</td>
+            </tr>
+          } @empty {
+            <tr><td colspan="4" class="empty-cell">No transfers recorded yet.</td></tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

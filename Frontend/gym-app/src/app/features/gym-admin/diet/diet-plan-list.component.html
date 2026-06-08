@@ -1,0 +1,121 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Diet Plans</h1>
+      <p class="saas-page__subtitle">Create and manage member nutrition plans</p>
+    </div>
+    <div class="member-page__actions">
+      @if (auth.hasPermission(permissions.ManageDietPlans)) {
+        <a class="btn-primary" routerLink="new">
+          <mat-icon>add</mat-icon>
+          New Plan
+        </a>
+      }
+    </div>
+  </header>
+
+  <section class="table-shell">
+    <div class="table-toolbar">
+      <label class="search-box">
+        <mat-icon>search</mat-icon>
+        <input type="search" [formControl]="searchControl" placeholder="Search diet plans..." aria-label="Search diet plans" />
+      </label>
+      <div class="table-toolbar__filters">
+        <label class="filter-select">
+          <span>Category</span>
+          <select [formControl]="categoryControl" aria-label="Filter by category">
+            <option value="">All</option>
+            @for (c of categories(); track c.dietCategoryId) {
+              <option [value]="c.dietCategoryId">{{ c.categoryName }}</option>
+            }
+          </select>
+          <mat-icon>expand_more</mat-icon>
+        </label>
+        <label class="filter-checkbox">
+          <input type="checkbox" [formControl]="includeInactiveControl" />
+          <span>Include inactive</span>
+        </label>
+      </div>
+    </div>
+
+    @if (loading()) {
+      <div class="page-loading">
+        <mat-spinner diameter="36" />
+        <p>Loading diet plans…</p>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table mat-table [dataSource]="plans()" class="saas-table">
+          <ng-container matColumnDef="planName">
+            <th mat-header-cell *matHeaderCellDef>Plan</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="item-cell">
+                <span class="item-cell__avatar"><mat-icon>restaurant</mat-icon></span>
+                <div class="item-cell__text">
+                  <a class="plan-link" [routerLink]="[row.dietPlanId, 'edit']">{{ row.planName }}</a>
+                  @if (row.categoryName) {
+                    <small>{{ row.categoryName }}</small>
+                  }
+                </div>
+              </div>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="items">
+            <th mat-header-cell *matHeaderCellDef>Meals</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="chip">{{ row.itemCount }} meals</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="calories">
+            <th mat-header-cell *matHeaderCellDef>Target kcal</th>
+            <td mat-cell *matCellDef="let row">{{ row.targetCalories ?? '—' }}</td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="status-badge" [class.status-badge--active]="row.isActive" [class.status-badge--muted]="!row.isActive">
+                {{ row.isActive ? 'Active' : 'Inactive' }}
+              </span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="row-actions">
+                @if (auth.hasPermission(permissions.AssignDietPlan)) {
+                  <button class="row-actions__btn" type="button" (click)="openAssign(row)" title="Assign to member">
+                    <mat-icon>person_add</mat-icon>
+                  </button>
+                }
+                @if (auth.hasPermission(permissions.ManageDietPlans)) {
+                  <button class="row-actions__btn" type="button" (click)="clone(row)" title="Clone plan">
+                    <mat-icon>content_copy</mat-icon>
+                  </button>
+                  <a class="row-actions__btn" [routerLink]="[row.dietPlanId, 'edit']" title="Edit plan">
+                    <mat-icon>edit</mat-icon>
+                  </a>
+                  <button class="row-actions__btn row-actions__btn--warn" type="button" (click)="remove(row)" title="Delete plan">
+                    <mat-icon>delete_outline</mat-icon>
+                  </button>
+                }
+                @if (auth.hasPermission(permissions.ExportDietPlans)) {
+                  <button class="row-actions__btn" type="button" (click)="exportPdf(row)" title="Export PDF">
+                    <mat-icon>picture_as_pdf</mat-icon>
+                  </button>
+                }
+              </div>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="cols"></tr>
+          <tr mat-row *matRowDef="let row; columns: cols" class="saas-row"></tr>
+          <tr class="mat-row empty-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="cols.length">No diet plans found.</td>
+          </tr>
+        </table>
+      </div>
+      <footer class="table-footer">
+        <p class="table-footer__summary">{{ plans().length }} plan{{ plans().length === 1 ? '' : 's' }}</p>
+      </footer>
+    }
+  </section>
+</div>

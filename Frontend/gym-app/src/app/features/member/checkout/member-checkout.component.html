@@ -1,0 +1,35 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Pay Membership</h1>
+      <p class="saas-page__subtitle">Secure online payment via Razorpay</p>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading"><mat-spinner diameter="44" /><p>Loading checkout details…</p></div>
+  } @else if (context()) {
+    <section class="panel-shell checkout-card">
+      <div class="panel-shell__head"><h2>Membership Summary</h2><p>Review your plan before payment</p></div>
+      <div class="panel-shell__body">
+        <div class="summary-grid">
+          <div class="summary-item"><span>Plan</span><strong>{{ context()!.planName }}</strong></div>
+          <div class="summary-item"><span>Amount</span><strong>{{ context()!.amount | currency:'INR' }}</strong></div>
+          <div class="summary-item"><span>Status</span><strong>{{ context()!.status }}</strong></div>
+          <div class="summary-item"><span>Valid until</span><strong>{{ context()!.endDate ? (context()!.endDate | date:'mediumDate') : '—' }}</strong></div>
+        </div>
+        @if (context()!.isExpired) {
+          <div class="hint-box">Your membership has expired. Payment will renew your membership automatically.</div>
+        }
+        <button class="btn-primary" type="button" [disabled]="paying()" (click)="pay()">
+          <mat-icon>payments</mat-icon>
+          {{ paying() ? 'Processing…' : 'Pay with Razorpay' }}
+        </button>
+      </div>
+    </section>
+  } @else {
+    <section class="panel-shell checkout-card">
+      <p class="empty-state">No payable membership found.</p>
+    </section>
+  }
+</div>

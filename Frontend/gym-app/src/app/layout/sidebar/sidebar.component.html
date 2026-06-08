@@ -1,0 +1,45 @@
+<aside class="sidebar">
+  <div class="sidebar__brand">
+    <div class="sidebar__logo">
+      <svg viewBox="0 0 48 48" aria-hidden="true">
+        <rect x="4" y="20" width="6" height="8" rx="1.5" fill="currentColor"/>
+        <rect x="38" y="20" width="6" height="8" rx="1.5" fill="currentColor"/>
+        <rect x="10" y="22" width="28" height="4" rx="1" fill="currentColor"/>
+        <path d="M22 14h4v20h-4z" fill="currentColor"/>
+      </svg>
+    </div>
+    <div class="sidebar__brand-text">
+      <strong>FITNESS PRO</strong>
+      <span>{{ title }}</span>
+    </div>
+  </div>
+
+  <nav class="sidebar__nav">
+    @for (item of menuItems; track item.route) {
+      <a
+        class="sidebar__link"
+        [routerLink]="item.route"
+        routerLinkActive="sidebar__link--active"
+        [routerLinkActiveOptions]="linkActiveOptions(item)">
+        <mat-icon>{{ item.icon }}</mat-icon>
+        <span>{{ item.label }}</span>
+      </a>
+    }
+  </nav>
+
+  <div class="sidebar__footer">
+    <div class="sidebar__promo">
+      <strong>All-in-one platform</strong>
+      <p>Manage your gym operations and fitness journey from one place.</p>
+    </div>
+    @if (userName) {
+      <div class="sidebar__user">
+        <div class="sidebar__avatar">{{ userName.charAt(0).toUpperCase() }}</div>
+        <div>
+          <strong>{{ userName }}</strong>
+          <span>{{ userEmail || title }}</span>
+        </div>
+      </div>
+    }
+  </div>
+</aside>

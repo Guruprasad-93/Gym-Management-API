@@ -1,0 +1,56 @@
+<section class="page-top-section set-bg" data-setbg="/ahana/img/page-top-bg.jpg">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 m-auto text-white">
+        <h2>Register Your Gym</h2>
+        <p>Start your 15-day free trial. No credit card required.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="signup-section spad">
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-5">
+        <div class="singup-text">
+          <h3>Gym Owner Sign Up</h3>
+          <p>Create your gym workspace, admin account, and activate a free trial instantly.</p>
+          @if (plans.length) {
+            <ul class="plan-preview">
+              @for (p of plans; track p.id) {
+                @if (p.planCode !== 'Trial') {
+                  <li><strong>{{ p.planName }}</strong> — from {{ p.monthlyPrice | currency }}/mo</li>
+                }
+              }
+            </ul>
+          }
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <form class="singup-form" [formGroup]="form" (ngSubmit)="submit()">
+          <input type="text" placeholder="Gym name" formControlName="gymName" />
+          <input type="text" placeholder="Owner name" formControlName="ownerName" class="mt-3" />
+          <input type="tel" placeholder="Mobile (WhatsApp)" formControlName="mobile" class="mt-3" />
+          <input type="email" placeholder="Email" formControlName="email" class="mt-3" />
+          <input type="text" placeholder="Address (optional)" formControlName="address" class="mt-3" />
+          <input type="password" placeholder="Password (optional — temp password emailed)" formControlName="password" class="mt-3" />
+
+          @if (submitted && form.invalid) {
+            <div class="text-danger mt-2">Please fill in all required fields correctly.</div>
+          }
+          @if (errorMessage) { <div class="text-danger mt-2">{{ errorMessage }}</div> }
+          @if (successMessage) { <div class="text-success mt-2">{{ successMessage }}</div> }
+
+          <button type="submit" class="site-btn sb-gradient w-100 mt-4" [disabled]="loading">
+            {{ loading ? 'Creating gym...' : 'Start free trial' }}
+          </button>
+          <div class="mt-3 text-center">
+            <a routerLink="/auth/login" class="site-btn sb-white">Back to Login</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>

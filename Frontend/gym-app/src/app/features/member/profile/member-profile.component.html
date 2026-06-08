@@ -1,0 +1,194 @@
+@if (loading) {
+  <div class="profile-loading">
+    <mat-spinner diameter="40" />
+    <p>Loading profile…</p>
+  </div>
+} @else if (profile) {
+  <div class="profile-page">
+    <header class="profile-page__top">
+      <div>
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+          <a routerLink="/member/dashboard">Dashboard</a>
+          <span>/</span>
+          <span>My Profile</span>
+        </nav>
+        <h1 class="profile-page__title">Member Profile</h1>
+        <p class="profile-page__subtitle">Your membership, progress, and account details</p>
+      </div>
+      <div class="profile-page__actions">
+        <a class="btn-secondary" routerLink="/member/checkout">Pay Membership</a>
+        <a class="btn-primary" routerLink="/member/bookings">Book Class</a>
+      </div>
+    </header>
+
+    <section class="hero-grid">
+      <article class="hero-card hero-card--profile">
+        <div class="hero-card__identity">
+          <app-profile-photo-manager
+            title=""
+            [category]="fileCategories.MemberProfilePhoto"
+            [memberId]="profile.id"
+            [size]="72"
+            uploadLabel="Update photo" />
+          <div>
+            <h2>{{ profile.fullName }}</h2>
+            <span class="status-badge" [class.status-badge--active]="profile.isActive" [class.status-badge--muted]="!profile.isActive">
+              {{ profile.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </div>
+        </div>
+        <ul class="info-list">
+          <li><mat-icon>phone</mat-icon><span>{{ profile.phone ?? '—' }}</span></li>
+          <li><mat-icon>mail</mat-icon><span>{{ profile.email }}</span></li>
+          <li><mat-icon>cake</mat-icon><span>{{ dobLabel() }}</span></li>
+          <li><mat-icon>location_on</mat-icon><span>{{ profile.address ?? '—' }}</span></li>
+        </ul>
+        <div class="member-id">Member ID: {{ memberCode() }}</div>
+      </article>
+
+      <article class="hero-card">
+        <h3>Membership Status</h3>
+        <ul class="metric-list">
+          <li><mat-icon>card_membership</mat-icon><div><small>Plan</small><strong>{{ profile.membershipPlanName ?? '—' }}</strong></div></li>
+          <li><mat-icon>event</mat-icon><div><small>Member since</small><strong>{{ profile.joinDate | date: 'mediumDate' }}</strong></div></li>
+          <li><mat-icon>schedule</mat-icon><div><small>Valid until</small><strong>{{ profile.membershipEndDate ? (profile.membershipEndDate | date: 'mediumDate') : '—' }}</strong>@if (daysRemaining() !== null) { <em class="days-left">{{ daysRemaining() }} days left</em> }</div></li>
+          <li><mat-icon>verified</mat-icon><div><small>Status</small><strong>{{ profile.membershipStatus ?? (profile.isActive ? 'Active Member' : 'Inactive') }}</strong></div></li>
+        </ul>
+      </article>
+
+      <article class="hero-card">
+        <h3>Quick Stats</h3>
+        <ul class="metric-list">
+          <li><mat-icon>event_available</mat-icon><div><small>Attendance (month)</small><strong>{{ dashboard?.attendancePercentage ?? 0 }}%</strong></div></li>
+          <li><mat-icon>local_fire_department</mat-icon><div><small>Workout streak</small><strong>{{ dashboard?.workoutStreakDays ?? 0 }} days</strong></div></li>
+          <li><mat-icon>person</mat-icon><div><small>Personal trainer</small><strong>{{ profile.trainerName ?? 'Not assigned' }}</strong></div></li>
+          <li><mat-icon>groups</mat-icon><div><small>Referral points</small><strong>{{ dashboard?.referralStats?.totalRewardPoints ?? 0 }}</strong></div></li>
+        </ul>
+        <div class="attendance-bar">
+          <div class="attendance-bar__fill" [style.width.%]="dashboard?.attendancePercentage ?? 0"></div>
+        </div>
+      </article>
+    </section>
+
+    <nav class="profile-tabs" aria-label="Profile sections">
+      @for (tab of tabs; track tab.id) {
+        <button type="button" class="profile-tabs__btn" [class.profile-tabs__btn--active]="activeTab() === tab.id" (click)="activeTab.set(tab.id)">
+          {{ tab.label }}
+        </button>
+      }
+    </nav>
+
+    <section class="profile-body">
+      @switch (activeTab()) {
+        @case ('overview') {
+          <div class="overview-grid">
+            <article class="panel">
+              <div class="panel__head"><h4>Membership Details</h4></div>
+              <dl class="detail-grid">
+                <div><dt>Plan Name</dt><dd>{{ profile.membershipPlanName ?? '—' }}</dd></div>
+                <div><dt>Duration</dt><dd>{{ membershipDuration() }}</dd></div>
+                <div><dt>Start Date</dt><dd>{{ activeMembershipStart() ? (activeMembershipStart()! | date: 'mediumDate') : '—' }}</dd></div>
+                <div><dt>End Date</dt><dd>{{ profile.membershipEndDate ? (profile.membershipEndDate | date: 'mediumDate') : '—' }}</dd></div>
+                <div><dt>Latest Payment</dt><dd>{{ latestPaymentAmount() | currency:'INR' }}</dd></div>
+                <div><dt>Payment Method</dt><dd>{{ latestPaymentMethod() }}</dd></div>
+              </dl>
+              <a class="btn-link" routerLink="/member/checkout">Renew / Pay</a>
+            </article>
+
+            <article class="panel">
+              <div class="panel__head"><h4>Recent Payments</h4><a routerLink="/member/checkout" class="panel__link">View all</a></div>
+              <ul class="mini-list">
+                @for (p of recentPayments(); track p.id) {
+                  <li><mat-icon>check_circle</mat-icon><div><strong>{{ p.paymentDate | date: 'MMM d, y' }}</strong><span>{{ p.amount | currency:'INR' }} · {{ p.paymentMethod ?? '—' }}</span></div></li>
+                } @empty {
+                  <li class="mini-list__empty">No payments yet</li>
+                }
+              </ul>
+            </article>
+
+            <article class="panel">
+              <div class="panel__head"><h4>Body Measurements</h4><a routerLink="/member/progress" class="panel__link">View history</a></div>
+              <dl class="measure-list">
+                <div><dt>Height</dt><dd>{{ profile.height ? profile.height + ' cm' : '—' }}</dd></div>
+                <div><dt>Weight</dt><dd>{{ weightLabel() }}</dd></div>
+                <div><dt>Waist</dt><dd>{{ latestProgress()?.waist ? latestProgress()!.waist + ' cm' : '—' }}</dd></div>
+                <div><dt>BMI</dt><dd>{{ bmiLabel() }}</dd></div>
+                <div><dt>Body fat</dt><dd>{{ latestProgress()?.bodyFatPercentage != null ? latestProgress()!.bodyFatPercentage + '%' : '—' }}</dd></div>
+              </dl>
+            </article>
+
+            <article class="panel panel--wide">
+              <div class="panel__head"><h4>Workout Summary</h4><a routerLink="/member/workouts" class="panel__link">View workouts</a></div>
+              <div class="stat-row">
+                <div><strong>{{ workoutStats.total }}</strong><span>Total workouts</span></div>
+                <div><strong>{{ workoutStats.thisMonth }}</strong><span>This month</span></div>
+                <div><strong>{{ workoutStats.avgCompletion }}%</strong><span>Avg. completion</span></div>
+                <div><strong>{{ dashboard?.workoutStreakDays ?? 0 }}</strong><span>Day streak</span></div>
+                <div><strong>{{ workoutStats.latestPlan }}</strong><span>Latest plan</span></div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel__head"><h4>Notes & Goals</h4><a routerLink="/member/goals" class="panel__link">View goals</a></div>
+              <div class="notes-box">
+                @if (dashboard?.currentGoal) {
+                  <p><strong>{{ formatGoalType(dashboard!.currentGoal!.goalType) }}</strong> — {{ dashboard!.currentGoal!.currentValue }} / {{ dashboard!.currentGoal!.targetValue }} ({{ dashboard!.currentGoal!.progressPercent }}%)</p>
+                } @else {
+                  <p>No active goal set. Create one from the Goals page.</p>
+                }
+                @if (profile.emergencyContact) {
+                  <p class="notes-box__meta">Emergency: {{ profile.emergencyContact }}</p>
+                }
+                @if (latestFeedback()) {
+                  <p class="notes-box__meta">Latest feedback: {{ latestFeedback()!.rating }}/5 — {{ latestFeedback()!.comments || 'No comment' }}</p>
+                }
+              </div>
+            </article>
+          </div>
+        }
+        @case ('membership') {
+          <article class="panel panel--full">
+            <dl class="detail-grid detail-grid--wide">
+              <div><dt>Plan</dt><dd>{{ profile.membershipPlanName ?? '—' }}</dd></div>
+              <div><dt>Status</dt><dd>{{ profile.membershipStatus ?? '—' }}</dd></div>
+              <div><dt>Join date</dt><dd>{{ profile.joinDate | date: 'mediumDate' }}</dd></div>
+              <div><dt>End date</dt><dd>{{ profile.membershipEndDate ? (profile.membershipEndDate | date: 'mediumDate') : '—' }}</dd></div>
+              <div><dt>Trainer</dt><dd>{{ profile.trainerName ?? 'Not assigned' }}</dd></div>
+              <div><dt>Gender</dt><dd>{{ profile.gender ?? '—' }}</dd></div>
+            </dl>
+          </article>
+        }
+        @case ('payments') {
+          <article class="panel panel--full">
+            <table class="compact-table">
+              <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead>
+              <tbody>
+                @for (p of profile.paymentHistory; track p.id) {
+                  <tr><td>{{ p.paymentDate | date: 'mediumDate' }}</td><td>{{ p.amount | currency:'INR' }}</td><td>{{ p.paymentMethod ?? '—' }}</td><td>{{ p.status }}</td></tr>
+                } @empty {
+                  <tr><td colspan="4" class="empty-cell">No payment history</td></tr>
+                }
+              </tbody>
+            </table>
+          </article>
+        }
+        @case ('measurements') {
+          <article class="panel panel--full">
+            <ul class="mini-list mini-list--tall">
+              @for (e of progressEntries(); track e.progressId) {
+                <li><mat-icon>monitor_weight</mat-icon><div><strong>{{ e.progressDate | date: 'mediumDate' }}</strong><span>Weight {{ e.weight ?? '—' }} kg · Waist {{ e.waist ?? '—' }} cm · BMI {{ e.bmi ?? '—' }}</span></div></li>
+              } @empty {
+                <li class="mini-list__empty">No measurements logged</li>
+              }
+            </ul>
+          </article>
+        }
+        @case ('documents') {
+          <article class="panel panel--full panel--documents">
+            <app-member-files-gallery [memberId]="profile.id" [category]="fileCategories.MemberProgressPhoto" uploadLabel="Add progress photo" />
+          </article>
+        }
+      }
+    </section>
+  </div>
+}

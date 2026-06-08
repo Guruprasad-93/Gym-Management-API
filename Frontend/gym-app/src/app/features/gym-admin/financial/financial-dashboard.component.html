@@ -1,0 +1,76 @@
+<div class="member-page financial-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Financial Dashboard</h1>
+      <p class="saas-page__subtitle">Profit & loss, revenue vs expenses, and payroll overview</p>
+    </div>
+    <div class="member-page__actions">
+      <button class="btn-secondary" type="button" (click)="exportPdf()">
+        <mat-icon>picture_as_pdf</mat-icon>
+        P&amp;L PDF
+      </button>
+      <button class="btn-secondary" type="button" (click)="exportExcel()">
+        <mat-icon>table_chart</mat-icon>
+        Excel
+      </button>
+      <a class="btn-secondary" routerLink="/gym-admin">
+        <mat-icon>dashboard</mat-icon>
+        Dashboard
+      </a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading">
+      <mat-spinner diameter="36" />
+      <p>Loading financial data…</p>
+    </div>
+  } @else if (dash()) {
+    @let d = dash()!;
+    <div class="kpi-grid">
+      <app-saas-kpi-card label="Revenue This Month" [value]="d.revenueThisMonth" icon="trending_up" accent="#12b76a" [isCurrency]="true" />
+      <app-saas-kpi-card label="Expenses This Month" [value]="d.expensesThisMonth" icon="receipt_long" accent="#f04438" [isCurrency]="true" />
+      <app-saas-kpi-card label="Profit This Month" [value]="d.profitThisMonth" icon="account_balance" accent="#ff6600" [isCurrency]="true" />
+      <app-saas-kpi-card label="Pending Salaries" [value]="d.pendingSalaries" icon="schedule" accent="#f79009" [isCurrency]="true" />
+      <app-saas-kpi-card label="Trainer Commissions" [value]="d.totalTrainerCommissions" icon="sports" accent="#7a5af8" [isCurrency]="true" />
+    </div>
+
+    <section class="charts-row">
+      <app-saas-chart-card class="charts-row__wide" title="Monthly Profit Trend" subtitle="Revenue, expenses, and profit">
+        <div class="chart-host">
+          <canvas #profitChart></canvas>
+          @if (!d.monthlyProfitTrend.length) {
+            <p class="chart-empty chart-empty--overlay">No profit trend data yet.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+
+      <app-saas-chart-card title="Expense Breakdown" subtitle="By category">
+        <div class="chart-host">
+          <canvas #expenseChart></canvas>
+          @if (!d.expenseBreakdown.length) {
+            <p class="chart-empty chart-empty--overlay">No expense data recorded.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+
+      <app-saas-chart-card title="Payroll Cost Trend" subtitle="Monthly payroll spend">
+        <div class="chart-host">
+          <canvas #payrollChart></canvas>
+          @if (!d.payrollCostTrend.length) {
+            <p class="chart-empty chart-empty--overlay">No payroll trend data.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+
+      <app-saas-chart-card title="Commission Trend" subtitle="Trainer commissions over time">
+        <div class="chart-host">
+          <canvas #commissionChart></canvas>
+          @if (!d.commissionTrend.length) {
+            <p class="chart-empty chart-empty--overlay">No commission data.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+    </section>
+  }
+</div>

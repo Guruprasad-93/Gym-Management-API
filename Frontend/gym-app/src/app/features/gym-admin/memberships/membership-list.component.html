@@ -1,0 +1,106 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Memberships</h1>
+      <p class="saas-page__subtitle">Active and historical member subscriptions</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-secondary" routerLink="/gym-admin/memberships/expired">
+        <mat-icon>event_busy</mat-icon>
+        Expired
+      </a>
+      @if (auth.hasPermission(permissions.CreateMembership)) {
+        <button class="btn-primary" type="button" (click)="openCreate()">
+          <mat-icon>add</mat-icon>
+          Assign Membership
+        </button>
+      }
+    </div>
+  </header>
+
+  <section class="table-shell">
+    <div class="table-toolbar">
+      <label class="search-box">
+        <mat-icon>search</mat-icon>
+        <input
+          type="search"
+          [formControl]="searchControl"
+          placeholder="Search member, plan, or status..."
+          aria-label="Search memberships" />
+      </label>
+    </div>
+
+    @if (loading()) {
+      <div class="page-loading">
+        <mat-spinner diameter="36" />
+        <p>Loading memberships…</p>
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table mat-table [dataSource]="dataSource" class="saas-table">
+          <ng-container matColumnDef="member">
+            <th mat-header-cell *matHeaderCellDef>Member</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="item-cell">
+                <span class="item-cell__avatar">{{ memberInitials(row.memberName) }}</span>
+                <div class="item-cell__text">
+                  <strong>{{ row.memberName }}</strong>
+                  @if (row.memberEmail) {
+                    <small>{{ row.memberEmail }}</small>
+                  }
+                </div>
+              </div>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="plan">
+            <th mat-header-cell *matHeaderCellDef>Plan</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="chip">{{ row.planName }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="dates">
+            <th mat-header-cell *matHeaderCellDef>Period</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="date-range">{{ row.startDate | date:'MMM d, y' }} → {{ row.endDate | date:'MMM d, y' }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="status">
+            <th mat-header-cell *matHeaderCellDef>Status</th>
+            <td mat-cell *matCellDef="let row">
+              <span class="status-badge" [ngClass]="statusBadgeClass(row.status)">{{ row.status }}</span>
+            </td>
+          </ng-container>
+          <ng-container matColumnDef="actions">
+            <th mat-header-cell *matHeaderCellDef>Actions</th>
+            <td mat-cell *matCellDef="let row">
+              <div class="row-actions">
+                @if (auth.hasPermission(permissions.RenewMembership) && row.status === 'Active') {
+                  <button class="row-actions__btn" type="button" (click)="renew(row)" title="Renew">
+                    <mat-icon>autorenew</mat-icon>
+                  </button>
+                }
+                @if (auth.hasPermission(permissions.UpdateMembership) && row.status === 'Active') {
+                  <button class="row-actions__btn row-actions__btn--warn" type="button" (click)="cancel(row)" title="Cancel">
+                    <mat-icon>cancel</mat-icon>
+                  </button>
+                }
+              </div>
+            </td>
+          </ng-container>
+          <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns" class="saas-row"></tr>
+          <tr class="mat-row empty-row" *matNoDataRow>
+            <td class="mat-cell" [attr.colspan]="displayedColumns.length">No memberships found.</td>
+          </tr>
+        </table>
+      </div>
+      <footer class="table-footer">
+        <mat-paginator
+          [pageSizeOptions]="[5, 10, 25, 50]"
+          [pageSize]="10"
+          showFirstLastButtons />
+        <p class="table-footer__summary">{{ pageSummary }}</p>
+      </footer>
+    }
+  </section>
+</div>

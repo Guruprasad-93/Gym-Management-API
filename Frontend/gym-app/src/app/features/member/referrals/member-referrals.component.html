@@ -1,0 +1,41 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Referrals</h1>
+      <p class="saas-page__subtitle">Invite friends and earn reward points</p>
+    </div>
+  </header>
+
+  @if (stats()) {
+    <section class="highlight-card">
+      <h2 style="margin:0;font-size:1rem;font-weight:700;color:#101828;">Your Referral Code</h2>
+      <p class="highlight-card__code">{{ stats()!.referralCode }}</p>
+      <p>{{ stats()!.convertedReferrals }} / {{ stats()!.totalReferrals }} converted · {{ stats()!.totalRewardPoints }} points earned</p>
+      <button class="btn-secondary" type="button" (click)="copyCode()"><mat-icon>content_copy</mat-icon> Copy Code</button>
+    </section>
+
+    <section class="kpi-grid">
+      <app-saas-kpi-card label="Total Referrals" [value]="stats()!.totalReferrals" icon="group_add" accent="#ff6600" />
+      <app-saas-kpi-card label="Converted" [value]="stats()!.convertedReferrals" icon="check_circle" accent="#12b76a" />
+      <app-saas-kpi-card label="Reward Points" [value]="stats()!.totalRewardPoints" icon="card_giftcard" accent="#7a5af8" />
+    </section>
+
+    <section class="list-shell">
+      <div class="panel-shell__head" style="border-bottom:1px solid #f2f4f7;"><h2>Referral History</h2></div>
+      @for (r of stats()!.referrals; track r.referralId) {
+        <div class="list-row">
+          <div class="list-row__main">
+            <strong>{{ r.referralCode }}</strong>
+            <span>{{ r.referredMemberName ?? 'Pending invite' }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;">
+            <span class="status-badge" [class.status-badge--active]="r.status === 'Converted'" [class.status-badge--muted]="r.status !== 'Converted'">{{ r.status }}</span>
+            <span class="chip">{{ r.rewardPoints }} pts</span>
+          </div>
+        </div>
+      } @empty {
+        <p class="empty-state">No referrals yet. Share your code to get started.</p>
+      }
+    </section>
+  }
+</div>

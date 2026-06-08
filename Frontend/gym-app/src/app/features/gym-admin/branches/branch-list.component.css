@@ -1,0 +1,9 @@
+@import '../../../shared/styles/member-page.css';
+
+.table-footer {
+  justify-content: flex-end;
+}
+
+.panel-shell {
+  margin-bottom: 1.25rem;
+}

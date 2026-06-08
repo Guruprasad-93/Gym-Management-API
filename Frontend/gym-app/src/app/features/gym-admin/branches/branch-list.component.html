@@ -1,0 +1,106 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Branches</h1>
+      <p class="saas-page__subtitle">Manage gym locations and branch settings</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-secondary" routerLink="/gym-admin/branches/dashboard">
+        <mat-icon>dashboard</mat-icon>
+        Dashboard
+      </a>
+      <a class="btn-secondary" routerLink="/gym-admin/branches/analytics">
+        <mat-icon>insights</mat-icon>
+        Analytics
+      </a>
+      <a class="btn-secondary" routerLink="/gym-admin/branches/transfers">
+        <mat-icon>swap_horiz</mat-icon>
+        Transfers
+      </a>
+      <a class="btn-secondary" routerLink="/gym-admin/branches/targets">
+        <mat-icon>flag</mat-icon>
+        Targets
+      </a>
+    </div>
+  </header>
+
+  <section class="panel-shell">
+    <div class="panel-shell__head">
+      <h2>Add Branch</h2>
+      <p>Create a new gym location</p>
+    </div>
+    <div class="panel-shell__body">
+      <form [formGroup]="form" (ngSubmit)="create()" class="form-grid">
+        <label class="form-field">
+          <span>Branch name</span>
+          <input type="text" formControlName="branchName" placeholder="e.g. Downtown" />
+        </label>
+        <label class="form-field">
+          <span>Code</span>
+          <input type="text" formControlName="branchCode" placeholder="Optional" />
+        </label>
+        <label class="form-field">
+          <span>City</span>
+          <input type="text" formControlName="city" placeholder="Optional" />
+        </label>
+        <div class="form-actions">
+          <button class="btn-primary" type="submit" [disabled]="form.invalid">
+            <mat-icon>add</mat-icon>
+            Add Branch
+          </button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="table-shell">
+    <div class="table-wrap">
+      <table mat-table [dataSource]="branches()" class="saas-table">
+        <ng-container matColumnDef="name">
+          <th mat-header-cell *matHeaderCellDef>Branch</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="item-cell">
+              <span class="item-cell__avatar"><mat-icon>store</mat-icon></span>
+              <div class="item-cell__text">
+                <strong>{{ row.branchName }}</strong>
+                @if (row.city) {
+                  <small>{{ row.city }}</small>
+                }
+              </div>
+            </div>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="code">
+          <th mat-header-cell *matHeaderCellDef>Code</th>
+          <td mat-cell *matCellDef="let row">{{ row.branchCode || '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="members">
+          <th mat-header-cell *matHeaderCellDef>Members</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="chip">{{ row.memberCount }}</span>
+          </td>
+        </ng-container>
+        <ng-container matColumnDef="manager">
+          <th mat-header-cell *matHeaderCellDef>Manager</th>
+          <td mat-cell *matCellDef="let row">{{ row.managerName ?? '—' }}</td>
+        </ng-container>
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Status</th>
+          <td mat-cell *matCellDef="let row">
+            <span class="status-badge" [class.status-badge--active]="row.isActive" [class.status-badge--muted]="!row.isActive">
+              {{ row.isActive ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+        </ng-container>
+        <tr mat-header-row *matHeaderRowDef="cols"></tr>
+        <tr mat-row *matRowDef="let row; columns: cols" class="saas-row"></tr>
+        <tr class="mat-row empty-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="cols.length">No branches configured.</td>
+        </tr>
+      </table>
+    </div>
+    <footer class="table-footer">
+      <p class="table-footer__summary">{{ branches().length }} branch{{ branches().length === 1 ? '' : 'es' }}</p>
+    </footer>
+  </section>
+</div>

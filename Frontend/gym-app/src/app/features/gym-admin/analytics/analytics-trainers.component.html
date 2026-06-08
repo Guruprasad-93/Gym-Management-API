@@ -1,0 +1,96 @@
+<div class="member-page analytics-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Trainer Analytics</h1>
+      <p class="saas-page__subtitle">Trainer workload, assignments, and performance</p>
+    </div>
+    <div class="member-page__actions">
+      @if (auth.hasPermission(permissions.ViewAnalytics)) {
+        <button class="btn-secondary" type="button" (click)="exportPdf()" [disabled]="exporting()">
+          <mat-icon>picture_as_pdf</mat-icon>
+          Export PDF
+        </button>
+        <button class="btn-secondary" type="button" (click)="exportExcel()" [disabled]="exporting()">
+          <mat-icon>table_chart</mat-icon>
+          Export Excel
+        </button>
+      }
+      <a class="btn-secondary" routerLink="/gym-admin">
+        <mat-icon>dashboard</mat-icon>
+        Dashboard
+      </a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading">
+      <mat-spinner diameter="36" />
+      <p>Loading trainer analytics…</p>
+    </div>
+  } @else if (data()) {
+    @let tr = data()!;
+    <div class="kpi-grid kpi-grid--4">
+      <app-saas-kpi-card label="Active Trainers" [value]="tr.activeTrainers" icon="sports" accent="#ff6600" />
+      <app-saas-kpi-card label="Assigned Members" [value]="tr.assignedMembers" icon="groups" accent="#12b76a" />
+      <app-saas-kpi-card label="Avg. per Trainer" [value]="avgMembersPerTrainer(tr)" icon="person" accent="#2e90fa" hint="Members assigned" />
+      <app-saas-kpi-card label="Today's Sessions" [value]="todayAttendanceTotal(tr)" icon="event_available" accent="#7a5af8" hint="Check-ins led" />
+    </div>
+
+    <section class="charts-row">
+      <app-saas-chart-card title="Assigned Members" subtitle="Members per trainer">
+        <div class="chart-host">
+          <canvas #assignedChart></canvas>
+          @if (!tr.performance.length) {
+            <p class="chart-empty chart-empty--overlay">No trainer performance data.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+
+      <app-saas-chart-card title="Today's Activity" subtitle="Check-ins per trainer">
+        <div class="chart-host">
+          <canvas #activityChart></canvas>
+          @if (!tr.performance.length) {
+            <p class="chart-empty chart-empty--overlay">No trainer performance data.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+    </section>
+
+    <section class="panel-shell">
+      <div class="panel-shell__head">
+        <h2>Trainer Performance</h2>
+        <p>Assigned members and today's attendance by trainer</p>
+      </div>
+      <div class="panel-shell__body panel-shell__body--flush">
+        @if (tr.performance.length) {
+          <ul class="data-list">
+            @for (t of tr.performance; track t.trainerId) {
+              <li>
+                <div class="item-cell">
+                  <span class="item-cell__avatar">{{ trainerInitials(t.trainerName) }}</span>
+                  <div class="data-list__main">
+                    <span>{{ t.trainerName }}</span>
+                    <small>Trainer ID {{ t.trainerId }}</small>
+                  </div>
+                </div>
+                <div class="data-list__stats">
+                  <span class="chip">{{ t.assignedMembers }} members</span>
+                  <strong>{{ t.todayAttendance }} today</strong>
+                </div>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="empty-state">No trainer performance data yet.</p>
+        }
+      </div>
+    </section>
+  } @else {
+    <section class="panel-shell">
+      <div class="page-loading">
+        <mat-icon class="empty-icon">sports</mat-icon>
+        <p>Unable to load trainer analytics.</p>
+      </div>
+    </section>
+  }
+</div>

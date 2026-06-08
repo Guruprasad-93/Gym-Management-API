@@ -1,0 +1,95 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">AI Recommendations</h1>
+      <p class="saas-page__subtitle">Personalized workout and diet suggestions for your members</p>
+    </div>
+  </header>
+
+  @if (!loading && recommendations.length) {
+    <div class="kpi-grid">
+      <app-saas-kpi-card label="Total" [value]="recommendations.length" icon="auto_awesome" accent="#ff6600" hint="Suggestions" />
+      <app-saas-kpi-card label="Pending" [value]="pendingCount" icon="pending_actions" accent="#f79009" hint="Awaiting review" />
+      <app-saas-kpi-card label="Accepted" [value]="acceptedCount" icon="check_circle" accent="#12b76a" hint="Applied" />
+    </div>
+  }
+
+  <section class="table-shell">
+    <div class="table-toolbar">
+      <label class="search-box">
+        <mat-icon>search</mat-icon>
+        <input type="search" [(ngModel)]="search" placeholder="Search member or recommendation…" aria-label="Search recommendations" />
+      </label>
+      <div class="table-toolbar__filters">
+        <label class="filter-select">
+          <span>Type</span>
+          <select [(ngModel)]="typeFilter" aria-label="Filter by type">
+            <option value="all">All types</option>
+            @for (t of types; track t) {
+              <option [value]="t">{{ t }}</option>
+            }
+          </select>
+          <mat-icon>expand_more</mat-icon>
+        </label>
+        <label class="filter-select">
+          <span>Status</span>
+          <select [(ngModel)]="statusFilter" aria-label="Filter by status">
+            <option value="all">All</option>
+            <option value="pending">Pending</option>
+            <option value="accepted">Accepted</option>
+          </select>
+          <mat-icon>expand_more</mat-icon>
+        </label>
+      </div>
+    </div>
+
+    @if (loading) {
+      <div class="page-loading">
+        <mat-spinner diameter="36" />
+        <p>Loading recommendations…</p>
+      </div>
+    } @else if (filteredRecommendations.length) {
+      <div class="card-grid rec-grid">
+        @for (r of filteredRecommendations; track r.id) {
+          <article class="item-card">
+            <div class="item-card__head">
+              <div class="item-cell">
+                <span class="item-cell__avatar">{{ memberInitials(r.memberName) }}</span>
+                <div>
+                  <h3>{{ r.memberName }}</h3>
+                  <p class="item-card__meta">{{ r.generatedDate | date: 'medium' }}</p>
+                </div>
+              </div>
+              <span class="chip">{{ r.recommendationType }}</span>
+            </div>
+
+            <p class="rec-text">{{ r.recommendationText }}</p>
+
+            <div class="confidence-bar">
+              <div class="confidence-bar__track">
+                <div class="confidence-bar__fill" [style.width.%]="r.confidenceScore"></div>
+              </div>
+              <span>{{ r.confidenceScore }}% confidence</span>
+            </div>
+
+            <div class="rec-footer">
+              @if (!r.isAccepted) {
+                <button class="btn-primary" type="button" (click)="accept(r.id)">
+                  <mat-icon>check</mat-icon>
+                  Mark accepted
+                </button>
+              } @else {
+                <span class="status-badge status-badge--active">Accepted</span>
+              }
+            </div>
+          </article>
+        }
+      </div>
+      <footer class="table-footer">
+        <p class="table-footer__summary">{{ filteredRecommendations.length }} of {{ recommendations.length }} recommendation{{ recommendations.length === 1 ? '' : 's' }}</p>
+      </footer>
+    } @else {
+      <p class="empty-state">{{ recommendations.length ? 'No recommendations match your filters.' : 'No AI recommendations yet. Suggestions will appear here when generated for your members.' }}</p>
+    }
+  </section>
+</div>

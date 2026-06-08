@@ -1,0 +1,118 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">{{ pageTitle }}</h1>
+      <p class="saas-page__subtitle">Brand your gym platform, domains, email, and mobile app</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-secondary" routerLink="/gym-admin/white-label/preview">
+        <mat-icon>visibility</mat-icon>
+        Preview
+      </a>
+      <button class="btn-primary" type="button" (click)="save()" [disabled]="saving() || form.invalid">
+        <mat-icon>save</mat-icon>
+        {{ saving() ? 'Saving…' : 'Save' }}
+      </button>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading">
+      <mat-spinner diameter="36" />
+      <p>Loading settings…</p>
+    </div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="save()" class="wl-layout">
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>Brand Identity</h2>
+          <p>Names and colors shown across your platform</p>
+        </div>
+        <div class="panel-shell__body">
+          <div class="form-grid">
+            <label class="form-field">
+              <span>Brand name</span>
+              <input type="text" formControlName="brandName" />
+            </label>
+            <label class="form-field">
+              <span>App display name</span>
+              <input type="text" formControlName="appDisplayName" />
+            </label>
+            <label class="form-field color-field">
+              <span>Primary color</span>
+              <div class="color-field__input">
+                <input type="color" formControlName="primaryColor" />
+                <code>{{ form.value.primaryColor }}</code>
+              </div>
+            </label>
+            <label class="form-field color-field">
+              <span>Secondary color</span>
+              <div class="color-field__input">
+                <input type="color" formControlName="secondaryColor" />
+                <code>{{ form.value.secondaryColor }}</code>
+              </div>
+            </label>
+            <label class="form-field form-field--wide toggle-field">
+              <span>White label mode</span>
+              <label class="toggle-switch">
+                <input type="checkbox" formControlName="isWhiteLabelEnabled" />
+                <span>Enable white label branding</span>
+              </label>
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>Support &amp; Domains</h2>
+          <p>Contact details and custom URLs</p>
+        </div>
+        <div class="panel-shell__body">
+          <div class="form-grid">
+            <label class="form-field">
+              <span>Support email</span>
+              <input type="email" formControlName="supportEmail" />
+            </label>
+            <label class="form-field">
+              <span>Support phone</span>
+              <input type="tel" formControlName="supportPhone" />
+            </label>
+            <label class="form-field">
+              <span>Subdomain</span>
+              <input type="text" formControlName="subDomain" placeholder="fitzone" />
+              <small class="field-hint">fitzone.gymsaas.com</small>
+            </label>
+            <label class="form-field">
+              <span>Custom domain</span>
+              <input type="text" formControlName="customDomain" placeholder="www.fitzonegym.com" />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>Mobile App</h2>
+          <p>Future mobile app configuration</p>
+        </div>
+        <div class="panel-shell__body" formGroupName="mobile">
+          <div class="form-grid">
+            <label class="form-field">
+              <span>App name</span>
+              <input type="text" formControlName="appName" />
+            </label>
+            <label class="form-field">
+              <span>Android package</span>
+              <input type="text" formControlName="androidPackageName" />
+            </label>
+            <label class="form-field">
+              <span>iOS bundle ID</span>
+              <input type="text" formControlName="iosBundleId" />
+            </label>
+          </div>
+        </div>
+      </section>
+    </form>
+  }
+</div>

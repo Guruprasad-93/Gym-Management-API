@@ -1,0 +1,106 @@
+<div class="saas-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Role Management</h1>
+      <p class="saas-page__subtitle">Create and manage system roles</p>
+    </div>
+    @if (auth.hasPermission(permissions.CreateRole)) {
+      <button class="saas-page__add-btn" type="button" (click)="openForm()">
+        <mat-icon>add</mat-icon>
+        Create Role
+      </button>
+    }
+  </header>
+
+  <section class="table-shell">
+    <div class="table-toolbar">
+      <label class="search-box">
+        <mat-icon>search</mat-icon>
+        <input
+          type="search"
+          [formControl]="searchControl"
+          placeholder="Search roles by name or description..."
+          aria-label="Search roles" />
+      </label>
+
+      <div class="table-toolbar__filters">
+        <label class="filter-select">
+          <span>Type</span>
+          <select [formControl]="typeControl" aria-label="Filter by role type">
+            <option value="all">All roles</option>
+            <option value="system">System roles</option>
+            <option value="custom">Custom roles</option>
+          </select>
+          <mat-icon>expand_more</mat-icon>
+        </label>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table mat-table [dataSource]="dataSource" matSort class="saas-table">
+        <ng-container matColumnDef="roleName">
+          <th mat-header-cell *matHeaderCellDef mat-sort-header>Role</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="item-cell">
+              <span class="item-cell__avatar">
+                <mat-icon>admin_panel_settings</mat-icon>
+              </span>
+              <div class="item-cell__text">
+                <strong>{{ row.roleName }}</strong>
+                @if (row.description) {
+                  <small>{{ row.description }}</small>
+                }
+              </div>
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Description</th>
+          <td mat-cell *matCellDef="let row">{{ row.description || '—' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="system">
+          <th mat-header-cell *matHeaderCellDef>System</th>
+          <td mat-cell *matCellDef="let row">
+            <span
+              class="status-badge"
+              [class.status-badge--success]="row.isSystemRole"
+              [class.status-badge--muted]="!row.isSystemRole">
+              {{ row.isSystemRole ? 'System' : 'Custom' }}
+            </span>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="row-actions">
+              @if (auth.hasPermission(permissions.UpdateRole) && !row.isSystemRole) {
+                <button class="row-actions__btn" type="button" (click)="openForm(row)" title="Edit role">
+                  <mat-icon>edit</mat-icon>
+                </button>
+              }
+              @if (auth.hasPermission(permissions.DeleteRole) && !row.isSystemRole) {
+                <button class="row-actions__btn row-actions__btn--warn" type="button" (click)="deleteRole(row)" title="Delete role">
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns" class="saas-row"></tr>
+        <tr class="mat-row empty-row" *matNoDataRow>
+          <td class="mat-cell" [attr.colspan]="displayedColumns.length">No roles found.</td>
+        </tr>
+      </table>
+    </div>
+
+    <footer class="table-footer">
+      <mat-paginator [pageSizeOptions]="[5, 10, 25]" showFirstLastButtons (page)="onPageChange()" />
+      <p class="table-footer__summary">{{ pageSummary }}</p>
+    </footer>
+  </section>
+</div>

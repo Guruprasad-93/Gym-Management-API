@@ -1,0 +1,52 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Mobile Push Notifications</h1>
+      <p class="saas-page__subtitle">Send push campaigns to member devices</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-secondary" routerLink="../mobile-analytics">
+        <mat-icon>insights</mat-icon>
+        Analytics
+      </a>
+    </div>
+  </header>
+
+  <section class="panel-shell compose-panel">
+    <div class="panel-shell__head">
+      <h2>Compose Campaign</h2>
+      <p>Choose a template or write a custom message</p>
+    </div>
+    <div class="panel-shell__body">
+      <div class="form-grid">
+        <label class="form-field form-field--wide">
+          <span>Template</span>
+          <select [(ngModel)]="selectedTemplateTitle" (ngModelChange)="applyTemplate()">
+            @for (t of templates; track t.title) {
+              <option [value]="t.title">{{ t.title }}</option>
+            }
+          </select>
+        </label>
+        <label class="form-field form-field--wide">
+          <span>Title</span>
+          <input type="text" [(ngModel)]="title" placeholder="Notification title" />
+        </label>
+        <label class="form-field form-field--wide">
+          <span>Message</span>
+          <textarea [(ngModel)]="message" rows="4" placeholder="Push notification body"></textarea>
+        </label>
+      </div>
+      <div class="preview-box">
+        <span class="preview-box__label">Preview</span>
+        <strong>{{ title || 'Notification title' }}</strong>
+        <p>{{ message || 'Your message will appear here…' }}</p>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" type="button" [disabled]="sending() || !title || !message" (click)="send()">
+          <mat-icon>send</mat-icon>
+          {{ sending() ? 'Sending…' : 'Send Push Notification' }}
+        </button>
+      </div>
+    </div>
+  </section>
+</div>

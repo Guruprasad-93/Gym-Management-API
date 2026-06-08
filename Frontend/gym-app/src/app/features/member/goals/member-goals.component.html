@@ -1,0 +1,59 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">My Goals</h1>
+      <p class="saas-page__subtitle">Track and achieve your fitness targets</p>
+    </div>
+  </header>
+
+  <section class="panel-shell">
+    <div class="panel-shell__head">
+      <h2>Add New Goal</h2>
+      <p>Set a target and deadline to stay motivated</p>
+    </div>
+    <div class="panel-shell__body">
+      <form [formGroup]="form" (ngSubmit)="create()" class="form-grid">
+        <label class="form-field">
+          <span>Goal Type</span>
+          <select formControlName="goalType">
+            @for (t of goalTypes; track t) {
+              <option [value]="t">{{ formatGoalType(t) }}</option>
+            }
+          </select>
+        </label>
+        <label class="form-field">
+          <span>Target Value</span>
+          <input type="number" formControlName="targetValue" />
+        </label>
+        <label class="form-field">
+          <span>Target Date</span>
+          <input type="date" formControlName="targetDate" />
+        </label>
+        <div class="form-actions">
+          <button class="btn-primary" type="submit" [disabled]="form.invalid || saving()">Add Goal</button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <section class="card-grid">
+    @for (g of goals(); track g.goalId) {
+      <article class="item-card">
+        <div class="item-card__head">
+          <h3>{{ formatGoalType(g.goalType) }}</h3>
+          <span class="status-badge" [class.status-badge--active]="g.status === 'Active'" [class.status-badge--completed]="g.status === 'Completed'" [class.status-badge--muted]="g.status !== 'Active' && g.status !== 'Completed'">{{ g.status }}</span>
+        </div>
+        <p class="item-card__meta">Target {{ g.targetValue }} by {{ g.targetDate | date: 'mediumDate' }}</p>
+        <div class="progress-bar"><div class="progress-bar__fill" [style.width.%]="g.progressPercent"></div></div>
+        <div class="progress-label"><span>{{ g.currentValue }} / {{ g.targetValue }}</span><strong>{{ g.progressPercent }}%</strong></div>
+        @if (g.status === 'Active') {
+          <div class="form-actions" style="margin-top: 1rem;">
+            <button class="btn-secondary" type="button" (click)="complete(g.goalId)">Mark Complete</button>
+          </div>
+        }
+      </article>
+    } @empty {
+      <div class="empty-state panel-shell" style="grid-column: 1 / -1;">No goals yet. Add your first goal above.</div>
+    }
+  </section>
+</div>

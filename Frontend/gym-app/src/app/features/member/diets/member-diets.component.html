@@ -1,0 +1,48 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Diet Tracking</h1>
+      <p class="saas-page__subtitle">Daily meal compliance and nutrition habits</p>
+    </div>
+  </header>
+
+  @if (compliance()) {
+    <section class="kpi-grid">
+      <app-saas-kpi-card label="Daily Compliance" [value]="compliance()!.dailyCompliance + '%'" icon="today" accent="#ff6600" />
+      <app-saas-kpi-card label="Weekly Compliance" [value]="compliance()!.weeklyCompliance + '%'" icon="date_range" accent="#2e90fa" />
+      <app-saas-kpi-card label="Monthly Compliance" [value]="compliance()!.monthlyCompliance + '%'" icon="calendar_month" accent="#12b76a" />
+    </section>
+  }
+
+  <section class="panel-shell">
+    <div class="panel-shell__head"><h2>Log Today</h2><p>Record meals and compliance for today</p></div>
+    <div class="panel-shell__body">
+      <form [formGroup]="form" (ngSubmit)="save()" class="form-grid">
+        <label class="form-field"><span>Plan ID</span><input type="number" formControlName="dietPlanId" /></label>
+        <label class="form-field"><span>Meals Completed</span><input type="number" formControlName="mealsCompleted" /></label>
+        <label class="form-field"><span>Compliance %</span><input type="number" formControlName="compliancePercentage" /></label>
+        <div class="form-actions"><button class="btn-primary" type="submit">Log Today</button></div>
+      </form>
+    </div>
+  </section>
+
+  <section class="chart-section">
+    <app-saas-chart-card title="Diet Compliance" subtitle="Compliance trend over recent logs">
+      <canvas #chartRef></canvas>
+    </app-saas-chart-card>
+  </section>
+
+  <section class="list-shell">
+    @for (d of diets(); track d.dietTrackingId) {
+      <div class="list-row">
+        <div class="list-row__main">
+          <strong>{{ d.dietPlanName ?? 'Diet Plan' }}</strong>
+          <span>{{ d.trackingDate | date: 'mediumDate' }} · {{ d.mealsCompleted }} meals</span>
+        </div>
+        <span class="status-badge status-badge--active">{{ d.compliancePercentage }}%</span>
+      </div>
+    } @empty {
+      <p class="empty-state">No diet logs yet.</p>
+    }
+  </section>
+</div>

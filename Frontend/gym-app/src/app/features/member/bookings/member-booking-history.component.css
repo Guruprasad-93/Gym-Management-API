@@ -1,0 +1,11 @@
+@import '../../../shared/styles/member-page.css';
+
+.empty-state a {
+  color: #ff6600;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.empty-state a:hover {
+  text-decoration: underline;
+}

@@ -1,0 +1,132 @@
+@if (loading()) {
+  <div class="dashboard-loading">
+    <mat-spinner diameter="40" />
+    <p>Loading your dashboard…</p>
+  </div>
+} @else if (dashboard()) {
+  @let dash = dashboard()!;
+  <div class="dashboard-page">
+    <header class="dashboard-page__top">
+      <div>
+        <h1 class="dashboard-page__title">Welcome back, {{ auth.user()?.name ?? 'Member' }}! 👋</h1>
+        <p class="dashboard-page__subtitle">Your fitness journey at a glance</p>
+      </div>
+      <div class="dashboard-page__badge">
+        <mat-icon>fitness_center</mat-icon>
+        Member overview
+      </div>
+    </header>
+
+    <div class="kpi-row">
+      <app-saas-kpi-card label="Attendance" [value]="dash.attendancePercentage + '%'" icon="event_available" accent="#ff6600" hint="This month" />
+      <app-saas-kpi-card label="Workout Streak" [value]="dash.workoutStreakDays" icon="local_fire_department" accent="#f79009" hint="Days" />
+      @if (dash.activeMembership) {
+        <app-saas-kpi-card label="Days Left" [value]="dash.activeMembership.remainingDays" icon="schedule" accent="#2e90fa" hint="Plan" />
+      } @else {
+        <app-saas-kpi-card label="Days Left" value="—" icon="schedule" accent="#2e90fa" hint="No plan" />
+      }
+      <app-saas-kpi-card label="Referral Pts" [value]="dash.referralStats.totalRewardPoints" icon="card_giftcard" accent="#12b76a" [hint]="referralHint(dash)" />
+    </div>
+
+    <div class="dashboard-grid">
+      <article class="panel">
+        <div class="panel__head">
+          <h3>Active Membership</h3>
+          @if (dash.activeMembership) {
+            <span class="status-badge status-badge--active">{{ dash.activeMembership.status }}</span>
+          }
+        </div>
+        @if (dash.activeMembership) {
+          <p class="panel__highlight">{{ dash.activeMembership.planName }}</p>
+          <dl class="mini-stats">
+            <div><dt>Started</dt><dd>{{ dash.activeMembership.startDate | date: 'MMM d, y' }}</dd></div>
+            <div><dt>Expires</dt><dd>{{ dash.activeMembership.endDate | date: 'MMM d, y' }}</dd></div>
+            <div><dt>Remaining</dt><dd>{{ dash.activeMembership.remainingDays }} days</dd></div>
+          </dl>
+        } @else {
+          <p class="panel__empty">No active membership</p>
+        }
+        @if (dash.recentPayments.length) {
+          <div class="panel__sub">
+            <h4>Recent Payments</h4>
+            <ul class="mini-list">
+              @for (payment of dash.recentPayments.slice(0, 3); track payment.paymentId) {
+                <li>
+                  <span>{{ payment.paymentDate | date: 'MMM d' }} · {{ payment.amount | currency:'INR' }}</span>
+                  <em>{{ payment.status }}</em>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </article>
+
+      <article class="panel">
+        <div class="panel__head">
+          <h3>Current Goal</h3>
+          @if (dash.currentGoal) {
+            <span class="status-badge status-badge--muted">{{ dash.currentGoal.status }}</span>
+          }
+        </div>
+        @if (dash.currentGoal) {
+          <p class="panel__highlight">{{ formatGoalType(dash.currentGoal.goalType) }}</p>
+          <div class="progress-bar"><div class="progress-bar__fill" [style.width.%]="dash.currentGoal.progressPercent"></div></div>
+          <div class="progress-meta">
+            <span>{{ dash.currentGoal.currentValue }} / {{ dash.currentGoal.targetValue }}</span>
+            <strong>{{ dash.currentGoal.progressPercent }}%</strong>
+          </div>
+          <p class="panel__note">Target: {{ dash.currentGoal.targetDate | date: 'MMM d, y' }}</p>
+        } @else {
+          <p class="panel__empty">No active goal — <a routerLink="/member/goals">set one</a></p>
+        }
+      </article>
+
+      <article class="panel panel--activity">
+        <div class="panel__head"><h3>Today's Activity</h3></div>
+        <div class="activity-grid">
+          @if (dash.todayWorkout) {
+            <div class="activity-item">
+              <mat-icon>fitness_center</mat-icon>
+              <div><strong>Workout</strong><span>{{ dash.todayWorkout.completionPercentage }}% · {{ dash.todayWorkout.workoutPlanName ?? 'Plan' }}</span></div>
+            </div>
+          }
+          @if (dash.todayDiet) {
+            <div class="activity-item">
+              <mat-icon>restaurant</mat-icon>
+              <div><strong>Diet</strong><span>{{ dash.todayDiet.compliancePercentage }}% · {{ dash.todayDiet.mealsCompleted }} meals</span></div>
+            </div>
+          }
+          @if (dash.todayWater) {
+            <div class="activity-item">
+              <mat-icon>water_drop</mat-icon>
+              <div><strong>Water</strong><span>{{ dash.todayWater.consumedLitres }}/{{ dash.todayWater.targetLitres }} L</span></div>
+            </div>
+          }
+          @if (!dash.todayWorkout && !dash.todayDiet && !dash.todayWater) {
+            <p class="panel__empty">Nothing logged today yet</p>
+          }
+        </div>
+        @if (qrImage()) {
+          <div class="qr-inline">
+            <div>
+              <strong>Check-in QR</strong>
+              <p>Scan at the front desk</p>
+            </div>
+            <img [src]="'data:image/png;base64,' + qrImage()" alt="Member QR Code" width="88" height="88" />
+          </div>
+        }
+      </article>
+    </div>
+
+    <nav class="quick-strip" aria-label="Quick actions">
+      @for (action of quickActions; track action.route) {
+        <a class="quick-strip__item" [routerLink]="action.route">
+          <span class="quick-strip__icon" [style.background]="action.color + '18'" [style.color]="action.color">
+            <mat-icon>{{ action.icon }}</mat-icon>
+          </span>
+          <span>{{ action.label }}</span>
+        </a>
+      }
+    </nav>
+  </div>
+}

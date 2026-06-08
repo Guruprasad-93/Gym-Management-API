@@ -1,0 +1,33 @@
+@import '../../../shared/styles/member-page.css';
+
+.member-link {
+  color: #101828;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-decoration: none;
+}
+
+.member-link:hover {
+  color: #ff6600;
+}
+
+.filter-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #344054;
+  cursor: pointer;
+}
+
+.filter-checkbox input {
+  accent-color: #ff6600;
+  width: 16px;
+  height: 16px;
+}
+
+.status-badge--warn {
+  background: #fef3f2;
+  color: #b42318;
+}

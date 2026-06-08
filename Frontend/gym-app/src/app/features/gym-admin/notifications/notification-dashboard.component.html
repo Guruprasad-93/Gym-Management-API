@@ -1,0 +1,70 @@
+<div class="member-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Notifications</h1>
+      <p class="saas-page__subtitle">WhatsApp delivery overview and messaging tools</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-secondary" routerLink="templates">
+        <mat-icon>description</mat-icon>
+        Templates
+      </a>
+      <a class="btn-secondary" routerLink="history">
+        <mat-icon>history</mat-icon>
+        History
+      </a>
+      @if (auth.hasPermission(permissions.SendNotifications)) {
+        <a class="btn-primary" routerLink="test">
+          <mat-icon>send</mat-icon>
+          Test Send
+        </a>
+      }
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading">
+      <mat-spinner diameter="36" />
+      <p>Loading notification stats…</p>
+    </div>
+  } @else if (dashboard()) {
+    @let d = dashboard()!;
+    <div class="kpi-grid">
+      <app-saas-kpi-card label="Sent Today" [value]="d.sentToday" icon="today" accent="#ff6600" />
+      <app-saas-kpi-card label="Total Sent" [value]="d.sentCount" icon="done_all" accent="#12b76a" />
+      <app-saas-kpi-card label="Failed" [value]="d.failedCount" icon="error_outline" accent="#f04438" hint="Delivery errors" />
+      <app-saas-kpi-card label="Pending" [value]="d.pendingCount" icon="schedule" accent="#f79009" />
+      <app-saas-kpi-card label="Active Templates" [value]="d.activeTemplates" icon="description" accent="#2e90fa" />
+      <app-saas-kpi-card label="Total Logs" [value]="d.totalLogs" icon="history" accent="#7a5af8" />
+    </div>
+
+    <div class="quick-links">
+      <a class="quick-link-card" routerLink="templates">
+        <mat-icon>description</mat-icon>
+        <div>
+          <strong>Manage Templates</strong>
+          <span>Edit WhatsApp message templates</span>
+        </div>
+        <mat-icon class="quick-link-card__arrow">chevron_right</mat-icon>
+      </a>
+      <a class="quick-link-card" routerLink="history">
+        <mat-icon>history</mat-icon>
+        <div>
+          <strong>Delivery History</strong>
+          <span>View sent, failed, and pending logs</span>
+        </div>
+        <mat-icon class="quick-link-card__arrow">chevron_right</mat-icon>
+      </a>
+      @if (auth.hasPermission(permissions.SendNotifications)) {
+        <a class="quick-link-card" routerLink="test">
+          <mat-icon>send</mat-icon>
+          <div>
+            <strong>Test Send</strong>
+            <span>Send a test notification to a phone number</span>
+          </div>
+          <mat-icon class="quick-link-card__arrow">chevron_right</mat-icon>
+        </a>
+      }
+    </div>
+  }
+</div>

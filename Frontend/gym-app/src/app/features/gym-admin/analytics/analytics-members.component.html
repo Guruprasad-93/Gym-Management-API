@@ -1,0 +1,120 @@
+<div class="member-page analytics-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Member Analytics</h1>
+      <p class="saas-page__subtitle">Membership growth, retention, and plan distribution</p>
+    </div>
+    <div class="member-page__actions">
+      @if (auth.hasPermission(permissions.ViewAnalytics)) {
+        <button class="btn-secondary" type="button" (click)="exportPdf()" [disabled]="exporting()">
+          <mat-icon>picture_as_pdf</mat-icon>
+          Export PDF
+        </button>
+        <button class="btn-secondary" type="button" (click)="exportExcel()" [disabled]="exporting()">
+          <mat-icon>table_chart</mat-icon>
+          Export Excel
+        </button>
+      }
+      <a class="btn-secondary" routerLink="/gym-admin">
+        <mat-icon>dashboard</mat-icon>
+        Dashboard
+      </a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading">
+      <mat-spinner diameter="36" />
+      <p>Loading member analytics…</p>
+    </div>
+  } @else if (data()) {
+    @let mem = data()!;
+    <div class="kpi-grid">
+      <app-saas-kpi-card label="Active Members" [value]="mem.activeMembers" icon="person" accent="#ff6600" [hint]="activeRate" />
+      <app-saas-kpi-card label="Active Memberships" [value]="mem.activeMemberships" icon="card_membership" accent="#12b76a" />
+      <app-saas-kpi-card label="New This Month" [value]="mem.newRegistrationsThisMonth" icon="person_add" accent="#2e90fa" />
+      <app-saas-kpi-card label="Expiring (7 days)" [value]="mem.expiringIn7Days" icon="schedule" accent="#f79009" hint="Renew soon" />
+      <app-saas-kpi-card label="Expired" [value]="mem.expiredMembers" icon="event_busy" accent="#f04438" />
+    </div>
+
+    <section class="charts-row">
+      <app-saas-chart-card class="charts-row__wide" title="Membership Growth" subtitle="New members — last 12 months">
+        <div class="chart-host">
+          <canvas #growthChart></canvas>
+          @if (!mem.growthTrend.length) {
+            <p class="chart-empty chart-empty--overlay">No growth data yet.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+
+      <app-saas-chart-card title="Plan Distribution" subtitle="Members per plan">
+        <div class="chart-host">
+          <canvas #planChart></canvas>
+          @if (!mem.planDistribution.length) {
+            <p class="chart-empty chart-empty--overlay">No plan distribution data.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+
+      <app-saas-chart-card title="Member Status" subtitle="Active vs expired overview">
+        <div class="chart-host">
+          <canvas #statusChart></canvas>
+        </div>
+      </app-saas-chart-card>
+    </section>
+
+    <div class="panels-grid panels-grid--2">
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>Growth Trend</h2>
+          <p>New member registrations by month</p>
+        </div>
+        <div class="panel-shell__body panel-shell__body--flush">
+          @if (mem.growthTrend.length) {
+            <ul class="data-list">
+              @for (g of mem.growthTrend; track g.monthLabel) {
+                <li>
+                  <span>{{ g.monthLabel }}</span>
+                  <strong>{{ g.newMembers }} new</strong>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-state">No growth data yet.</p>
+          }
+        </div>
+      </section>
+
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>Plan Distribution</h2>
+          <p>Members enrolled per plan</p>
+        </div>
+        <div class="panel-shell__body panel-shell__body--flush">
+          @if (mem.planDistribution.length) {
+            <ul class="data-list">
+              @for (p of mem.planDistribution; track p.name) {
+                <li>
+                  <div class="data-list__main">
+                    <span>{{ p.name }}</span>
+                    <small>{{ planShare(p.count, mem.activeMembers) }} of active</small>
+                  </div>
+                  <strong>{{ p.count }} members</strong>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-state">No plan distribution data.</p>
+          }
+        </div>
+      </section>
+    </div>
+  } @else {
+    <section class="panel-shell">
+      <div class="page-loading">
+        <mat-icon class="empty-icon">groups</mat-icon>
+        <p>Unable to load member analytics.</p>
+      </div>
+    </section>
+  }
+</div>

@@ -1,0 +1,106 @@
+<div class="member-page ai-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">AI Trainer Dashboard</h1>
+      <p class="saas-page__subtitle">Predictions, risk scores, and recommended actions</p>
+    </div>
+    <div class="member-page__actions">
+      <a class="btn-secondary" routerLink="insights">
+        <mat-icon>lightbulb</mat-icon>
+        Business Insights
+      </a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading">
+      <mat-spinner diameter="36" />
+      <p>Loading AI dashboard…</p>
+    </div>
+  } @else if (dashboard()) {
+    @let d = dashboard()!;
+    <div class="kpi-grid">
+      <app-saas-kpi-card label="High Risk Members" [value]="d.highRiskMembers" icon="warning" accent="#f04438" hint="Needs attention" />
+      <app-saas-kpi-card label="Predicted Renewals" [value]="d.predictedRenewals" icon="autorenew" accent="#12b76a" />
+      <app-saas-kpi-card label="Hot Leads" [value]="d.hotLeads" icon="local_fire_department" accent="#ff6600" />
+      <app-saas-kpi-card label="Recommendations" [value]="d.recentRecommendations" icon="psychology" accent="#2e90fa" />
+    </div>
+
+    <section class="charts-row">
+      <app-saas-chart-card title="Churn Risk Distribution" subtitle="Member risk categories">
+        <div class="chart-host">
+          <canvas #churnChart></canvas>
+          @if (!d.churnRiskDistribution.length) {
+            <p class="chart-empty chart-empty--overlay">No churn data yet.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+      <app-saas-chart-card title="Renewal Probability" subtitle="Likelihood buckets">
+        <div class="chart-host">
+          <canvas #renewalChart></canvas>
+          @if (!d.renewalProbabilityDistribution.length) {
+            <p class="chart-empty chart-empty--overlay">No renewal data yet.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+    </section>
+
+    <div class="panels-grid">
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>High Risk Members</h2>
+          <p>Members with elevated churn risk</p>
+        </div>
+        <div class="panel-shell__body panel-shell__body--flush">
+          @if (d.highRiskMemberList.length) {
+            <ul class="risk-list">
+              @for (m of d.highRiskMemberList; track m.memberId) {
+                <li class="risk-list__item">
+                  <div class="item-cell">
+                    <span class="item-cell__avatar">{{ memberInitials(m.memberName) }}</span>
+                    <div class="item-cell__text">
+                      <strong>{{ m.memberName }}</strong>
+                      <small>Health score: {{ m.healthScore }}</small>
+                    </div>
+                  </div>
+                  <div class="risk-list__badges">
+                    <span class="status-badge status-badge--warn">{{ m.churnRisk }} churn</span>
+                    <span class="chip">{{ m.renewalProbability }}% renewal</span>
+                  </div>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-state">No high-risk members identified.</p>
+          }
+        </div>
+      </section>
+
+      <section class="panel-shell">
+        <div class="panel-shell__head">
+          <h2>Top Recommendations</h2>
+          <p>AI-generated trainer actions</p>
+        </div>
+        <div class="panel-shell__body panel-shell__body--flush">
+          @if (d.topRecommendations.length) {
+            <ul class="rec-list">
+              @for (r of d.topRecommendations; track r.id) {
+                <li class="rec-list__item">
+                  <div class="rec-list__head">
+                    <strong>{{ r.memberName }}</strong>
+                    <span class="chip">{{ r.recommendationType }}</span>
+                    <span class="confidence">{{ r.confidenceScore }}% confidence</span>
+                  </div>
+                  <p>{{ r.recommendationText }}</p>
+                  <small>{{ r.generatedDate | date:'MMM d, y h:mm a' }}</small>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="empty-state">No recommendations yet.</p>
+          }
+        </div>
+      </section>
+    </div>
+  }
+</div>

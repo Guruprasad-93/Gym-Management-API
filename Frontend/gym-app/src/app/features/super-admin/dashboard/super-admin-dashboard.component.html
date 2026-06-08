@@ -1,0 +1,140 @@
+<div class="dashboard" *ngIf="!loading && stats; else loadingTpl">
+  <header class="dashboard__hero">
+    <div>
+      <h1 class="dashboard__title">Welcome back, {{ auth.user()?.name ?? 'Super Admin' }}! 👋</h1>
+      <p class="dashboard__subtitle">Platform overview and SaaS performance at a glance.</p>
+    </div>
+    <div class="dashboard__badge">
+      <mat-icon>insights</mat-icon>
+      Live platform metrics
+    </div>
+  </header>
+
+  <section class="dashboard__section">
+    <div class="dashboard__section-head">
+      <h2>Platform KPIs</h2>
+      <span>Gyms, members, and revenue</span>
+    </div>
+    <div class="kpi-grid kpi-grid--6">
+      <app-saas-kpi-card label="Total Gyms" [value]="stats!.totalGyms" icon="fitness_center" accent="#ff6600" [hint]="activeGymRate" />
+      <app-saas-kpi-card label="Active Gyms" [value]="stats!.activeGyms" icon="check_circle" accent="#12b76a" [hint]="activeGymRate" />
+      <app-saas-kpi-card label="Total Members" [value]="stats!.totalMembers" icon="groups" accent="#2e90fa" [hint]="activeMemberRate" />
+      <app-saas-kpi-card label="Active Members" [value]="stats!.activeMembers" icon="person" accent="#06aed4" [hint]="activeMemberRate" />
+      <app-saas-kpi-card label="Total Revenue" [value]="stats!.totalRevenue" icon="payments" accent="#7a5af8" [isCurrency]="true" />
+      <app-saas-kpi-card label="Monthly Revenue" [value]="stats!.monthlyRevenue" icon="calendar_month" accent="#f79009" [isCurrency]="true" />
+    </div>
+  </section>
+
+  @if (saas) {
+    <section class="dashboard__section">
+      <div class="dashboard__section-head">
+        <h2>SaaS Platform</h2>
+        <span>Subscriptions and recurring revenue</span>
+      </div>
+      <div class="kpi-grid kpi-grid--5">
+        <app-saas-kpi-card label="Active Subscriptions" [value]="saas!.activeSubscriptions" icon="subscriptions" accent="#2e90fa" />
+        <app-saas-kpi-card label="Trial Gyms" [value]="saas!.trialSubscriptions" icon="schedule" accent="#f79009" />
+        <app-saas-kpi-card label="Expired Subscriptions" [value]="saas!.expiredSubscriptions" icon="cancel" accent="#f04438" />
+        <app-saas-kpi-card label="MRR" [value]="saas!.monthlyRecurringRevenue" icon="trending_up" accent="#7a5af8" [isCurrency]="true" />
+        <app-saas-kpi-card label="ARR" [value]="saas!.annualRecurringRevenue" icon="insights" accent="#12b76a" [isCurrency]="true" />
+      </div>
+    </section>
+  }
+
+  <section class="dashboard__section">
+    <div class="dashboard__section-head">
+      <h2>Operations</h2>
+      <span>Memberships, trainers, and renewals</span>
+    </div>
+    <div class="kpi-grid">
+      <app-saas-kpi-card label="Assigned to Trainers" [value]="stats!.membersWithTrainer" icon="sports" accent="#0086c9" [hint]="trainerAssignmentRate" />
+      <app-saas-kpi-card label="Active Memberships" [value]="stats!.activeMemberships" icon="card_membership" accent="#12b76a" />
+      <app-saas-kpi-card label="Pending Renewals" [value]="stats!.pendingRenewals" icon="schedule" accent="#f79009" />
+      <app-saas-kpi-card label="Expired Memberships" [value]="stats!.expiredMemberships" icon="event_busy" accent="#f04438" />
+    </div>
+  </section>
+
+  <section class="charts-grid">
+    <app-saas-chart-card class="charts-grid__wide" title="Platform Overview" subtitle="Gyms, members, trainers, and expired memberships">
+      <canvas #overviewChartCanvas></canvas>
+    </app-saas-chart-card>
+
+    @if (saas) {
+      <app-saas-chart-card title="Subscription Distribution" subtitle="Active, trial, and expired SaaS subscriptions">
+        <canvas #subscriptionChartCanvas></canvas>
+      </app-saas-chart-card>
+    }
+
+    <app-saas-chart-card title="Revenue Overview" subtitle="Total, monthly, and recurring revenue">
+      <canvas #revenueChartCanvas></canvas>
+    </app-saas-chart-card>
+
+    <app-saas-chart-card title="Membership Status" subtitle="Active, pending renewal, and expired">
+      <canvas #membershipChartCanvas></canvas>
+    </app-saas-chart-card>
+  </section>
+
+  <section class="dashboard__section">
+    <div class="dashboard__section-head">
+      <h2>Quick Actions</h2>
+      <span>Jump to common super admin tasks</span>
+    </div>
+    <div class="quick-actions">
+      @for (action of quickActions; track action.route) {
+        <a class="quick-action" [routerLink]="action.route">
+          <span class="quick-action__icon" [style.background]="action.color + '18'" [style.color]="action.color">
+            <mat-icon>{{ action.icon }}</mat-icon>
+          </span>
+          <span class="quick-action__text">
+            <strong>{{ action.label }}</strong>
+            <small>{{ action.description }}</small>
+          </span>
+          <mat-icon class="quick-action__arrow">chevron_right</mat-icon>
+        </a>
+      }
+    </div>
+  </section>
+
+  <section class="summary-grid">
+    <article class="summary-card">
+      <h3>Membership Health</h3>
+      <ul class="summary-list">
+        <li><span>Active</span><strong>{{ stats!.activeMemberships }}</strong></li>
+        <li><span>Pending renewals</span><strong>{{ stats!.pendingRenewals }}</strong></li>
+        <li><span>Expired</span><strong>{{ stats!.expiredMemberships }}</strong></li>
+        <li><span>With trainer</span><strong>{{ stats!.membersWithTrainer }}</strong></li>
+      </ul>
+    </article>
+
+    @if (saas) {
+      <article class="summary-card">
+        <h3>SaaS Snapshot</h3>
+        <ul class="summary-list">
+          <li><span>Active subscriptions</span><strong>{{ saas!.activeSubscriptions }}</strong></li>
+          <li><span>Trial gyms</span><strong>{{ saas!.trialSubscriptions }}</strong></li>
+          <li><span>Expired subscriptions</span><strong>{{ saas!.expiredSubscriptions }}</strong></li>
+          <li><span>MRR</span><strong>{{ saas!.monthlyRecurringRevenue | currency }}</strong></li>
+        </ul>
+      </article>
+    }
+
+    <article class="summary-card">
+      <h3>Revenue Summary</h3>
+      <ul class="summary-list">
+        <li><span>Total revenue</span><strong>{{ stats!.totalRevenue | currency }}</strong></li>
+        <li><span>Monthly revenue</span><strong>{{ stats!.monthlyRevenue | currency }}</strong></li>
+        @if (saas) {
+          <li><span>ARR</span><strong>{{ saas!.annualRecurringRevenue | currency }}</strong></li>
+        }
+        <li><span>Total trainers</span><strong>{{ stats!.totalTrainers }}</strong></li>
+      </ul>
+    </article>
+  </section>
+</div>
+
+<ng-template #loadingTpl>
+  <div class="dashboard-loading">
+    <mat-spinner diameter="48" />
+    <p>Loading dashboard metrics…</p>
+  </div>
+</ng-template>

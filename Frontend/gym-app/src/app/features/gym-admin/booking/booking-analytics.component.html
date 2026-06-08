@@ -1,0 +1,66 @@
+<div class="member-page booking-analytics-page">
+  <header class="saas-page__header">
+    <div>
+      <h1 class="saas-page__title">Booking Analytics</h1>
+      <p class="saas-page__subtitle">Occupancy, trends, and class popularity</p>
+    </div>
+    <div class="member-page__actions">
+      <button class="btn-secondary" type="button" (click)="export('pdf')">
+        <mat-icon>picture_as_pdf</mat-icon>
+        Export PDF
+      </button>
+      <button class="btn-secondary" type="button" (click)="export('excel')">
+        <mat-icon>table_chart</mat-icon>
+        Export Excel
+      </button>
+      <a class="btn-secondary" routerLink="../bookings">
+        <mat-icon>event</mat-icon>
+        Bookings
+      </a>
+    </div>
+  </header>
+
+  @if (loading()) {
+    <div class="page-loading">
+      <mat-spinner diameter="36" />
+      <p>Loading booking analytics…</p>
+    </div>
+  } @else if (analytics()) {
+    @let a = analytics()!;
+    <div class="kpi-grid">
+      <app-saas-kpi-card label="Total Bookings" [value]="a.totalBookings" icon="event" accent="#ff6600" />
+      <app-saas-kpi-card label="Today" [value]="a.todaysBookings" icon="today" accent="#12b76a" />
+      <app-saas-kpi-card label="Occupancy" [value]="a.occupancyPercent + '%'" icon="groups" accent="#2e90fa" />
+      <app-saas-kpi-card label="No-show Rate" [value]="a.noShowPercent + '%'" icon="person_off" accent="#f04438" hint="Missed bookings" />
+    </div>
+
+    <section class="charts-row">
+      <app-saas-chart-card class="charts-row__wide" title="Booking Trend" subtitle="Bookings over time">
+        <div class="chart-host">
+          <canvas #trendChart></canvas>
+          @if (!a.bookingTrend.length) {
+            <p class="chart-empty chart-empty--overlay">No trend data yet.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+
+      <app-saas-chart-card title="Popular Classes" subtitle="Most booked classes">
+        <div class="chart-host">
+          <canvas #classChart></canvas>
+          @if (!a.popularClasses.length) {
+            <p class="chart-empty chart-empty--overlay">No class data.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+
+      <app-saas-chart-card title="Peak Hours" subtitle="Busiest time slots">
+        <div class="chart-host">
+          <canvas #peakChart></canvas>
+          @if (!a.peakHours.length) {
+            <p class="chart-empty chart-empty--overlay">No peak hour data.</p>
+          }
+        </div>
+      </app-saas-chart-card>
+    </section>
+  }
+</div>
