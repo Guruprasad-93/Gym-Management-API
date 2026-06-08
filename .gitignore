@@ -82,8 +82,9 @@ secrets.json
 **/Properties/launchSettings.json.user
 
 # =========================
-# Node / Angular
+# Node / Angular (UI moved to Gym-Management-UI repo)
 # =========================
+Frontend/
 node_modules/
 npm-debug.log*
 yarn-debug.log*
