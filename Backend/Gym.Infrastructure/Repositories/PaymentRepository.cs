@@ -119,7 +119,7 @@ public class PaymentRepository : IPaymentRepository
             Month = r.Month,
             MonthLabel = r.MonthLabel,
             Revenue = r.Revenue
-        }).ToList();
+        }).Reverse().ToList();
     }
 
     public async Task<PaymentResponseDto> CreateRazorpayOrderAsync(

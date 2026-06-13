@@ -14,5 +14,9 @@ public class ChangePasswordDtoValidator : AbstractValidator<ChangePasswordDto>
             .MaximumLength(100)
             .Must((dto, np) => !string.Equals(dto.CurrentPassword, np, StringComparison.Ordinal))
             .WithMessage("New password must be different from the current password.");
+        RuleFor(x => x.ConfirmPassword)
+            .NotEmpty()
+            .Equal(x => x.NewPassword)
+            .WithMessage("Confirm Password does not match New Password.");
     }
 }

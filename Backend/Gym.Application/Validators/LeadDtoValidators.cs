@@ -1,6 +1,7 @@
 using FluentValidation;
 using Gym.Application.Constants;
 using Gym.Application.DTOs.Leads;
+using Gym.Application.Validation;
 
 namespace Gym.Application.Validators;
 
@@ -9,7 +10,7 @@ public class CreateLeadDtoValidator : AbstractValidator<CreateLeadDto>
     public CreateLeadDtoValidator()
     {
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.MobileNumber).NotEmpty().MaximumLength(20);
+        RuleFor(x => x.MobileNumber).RequiredPhoneNumber();
         RuleFor(x => x.Email).EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.Email)).MaximumLength(256);
         RuleFor(x => x.LeadSource).NotEmpty().Must(s => LeadSources.All.Contains(s)).WithMessage("Invalid lead source.");
         RuleFor(x => x.Gender).MaximumLength(20);
@@ -24,7 +25,7 @@ public class UpdateLeadDtoValidator : AbstractValidator<UpdateLeadDto>
     public UpdateLeadDtoValidator()
     {
         RuleFor(x => x.FullName).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.MobileNumber).NotEmpty().MaximumLength(20);
+        RuleFor(x => x.MobileNumber).RequiredPhoneNumber();
         RuleFor(x => x.Email).EmailAddress().When(x => !string.IsNullOrWhiteSpace(x.Email)).MaximumLength(256);
         RuleFor(x => x.LeadSource).NotEmpty().Must(s => LeadSources.All.Contains(s)).WithMessage("Invalid lead source.");
         RuleFor(x => x.Status).NotEmpty().Must(s => LeadStatuses.All.Contains(s)).WithMessage("Invalid status.");

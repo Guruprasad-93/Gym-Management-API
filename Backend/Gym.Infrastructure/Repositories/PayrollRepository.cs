@@ -114,14 +114,14 @@ public class PayrollRepository : IPayrollRepository
     {
         var rows = await _sp.QueryAsync<TrendPointRow>(
             StoredProcedureNames.GetPayrollCostTrend, new { GymId = gymId, Months = months }, cancellationToken);
-        return rows.Select(r => new TrendPointDto { MonthLabel = r.MonthLabel, Value = r.PayrollCost }).ToList();
+        return rows.Select(r => new TrendPointDto { MonthLabel = r.MonthLabel, Value = r.PayrollCost }).Reverse().ToList();
     }
 
     public async Task<IReadOnlyList<TrendPointDto>> GetCommissionTrendAsync(Guid? gymId, int months, CancellationToken cancellationToken = default)
     {
         var rows = await _sp.QueryAsync<TrendPointRow>(
             StoredProcedureNames.GetCommissionTrend, new { GymId = gymId, Months = months }, cancellationToken);
-        return rows.Select(r => new TrendPointDto { MonthLabel = r.MonthLabel, Value = r.CommissionTotal }).ToList();
+        return rows.Select(r => new TrendPointDto { MonthLabel = r.MonthLabel, Value = r.CommissionTotal }).Reverse().ToList();
     }
 
     private static PayrollDto MapPayroll(PayrollRow r) => new()
