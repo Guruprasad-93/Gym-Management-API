@@ -14,6 +14,9 @@ public class ExpenseRepository : IExpenseRepository
 
     public ExpenseRepository(IStoredProcedureExecutor sp) => _sp = sp;
 
+    public Task SeedCategoriesAsync(Guid gymId, CancellationToken cancellationToken = default) =>
+        _sp.ExecuteAsync(StoredProcedureNames.SeedExpenseCategories, new { GymId = gymId }, cancellationToken);
+
     public async Task<IReadOnlyList<ExpenseCategoryDto>> GetCategoriesAsync(Guid gymId, CancellationToken cancellationToken = default)
     {
         var rows = await _sp.QueryAsync<ExpenseCategoryRow>(

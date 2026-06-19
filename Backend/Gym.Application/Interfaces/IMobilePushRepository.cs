@@ -28,6 +28,13 @@ public interface IMobilePushRepository
     Task<IReadOnlyList<MemberPushCandidateRow>> GetDietReminderCandidatesAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<GoalPushCandidateRow>> GetGoalReminderCandidatesAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<Guid>> GetMemberUserIdsAsync(Guid gymId, int? branchId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Guid>> GetCampaignRecipientUserIdsAsync(
+        Guid gymId,
+        string targetAudience,
+        int? branchId,
+        int expiringWithinDays,
+        IReadOnlyList<Guid>? userIds,
+        CancellationToken cancellationToken = default);
 }
 
 public sealed class PendingPushRow

@@ -34,8 +34,16 @@ public class DietPlanService : IDietPlanService
     }
 
     public async Task<IReadOnlyList<DietCategoryDto>> GetCategoriesAsync(
-        bool includeInactive, CancellationToken cancellationToken = default) =>
-        await _repository.GetCategoriesAsync(ResolveGymIdForMutation(null), includeInactive, cancellationToken);
+        bool includeInactive, CancellationToken cancellationToken = default)
+    {
+        var gymId = ResolveGymIdForMutation(null);
+        var categories = await _repository.GetCategoriesAsync(gymId, includeInactive, cancellationToken);
+        if (categories.Count > 0)
+            return categories;
+
+        await _repository.SeedCategoriesAsync(gymId, cancellationToken);
+        return await _repository.GetCategoriesAsync(gymId, includeInactive, cancellationToken);
+    }
 
     public async Task<DietCategoryDto> CreateCategoryAsync(
         CreateDietCategoryDto dto, CancellationToken cancellationToken = default)

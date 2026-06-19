@@ -5,8 +5,10 @@ namespace Gym.Application.DTOs.Auth;
 public class LoginRequestDto
 {
     [Required]
-    [EmailAddress]
-    public string Email { get; set; } = string.Empty;
+    [MaxLength(20)]
+    public string LoginIdentifier { get; set; } = string.Empty;
+
+    public Guid? GymId { get; set; }
 
     [Required]
     [MinLength(6)]

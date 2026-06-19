@@ -219,7 +219,7 @@ BEGIN
     SET NOCOUNT ON;
     IF @PageNumber < 1 SET @PageNumber = 1;
     IF @PageSize < 1 SET @PageSize = 10;
-    IF @PageSize > 100 SET @PageSize = 100;
+    IF @PageSize > 500 SET @PageSize = 500;
 
     DECLARE @SearchPattern NVARCHAR(202) = NULL;
     IF @Search IS NOT NULL AND LEN(LTRIM(RTRIM(@Search))) > 0
@@ -244,6 +244,23 @@ BEGIN
     )
     SELECT @TotalCount = COUNT(*) FROM Filtered;
 
+    ;WITH Filtered AS (
+        SELECT l.LeadId, l.GymId, l.FullName, l.MobileNumber, l.Email, l.Gender, l.Age, l.[Address],
+               l.LeadSource, l.InterestedPlanId, mp.PlanName AS InterestedPlanName,
+               l.[Status], l.AssignedTrainerId, tu.Name AS AssignedTrainerName,
+               l.Notes, l.ConvertedMemberId, l.CreatedDate, l.CreatedBy, l.UpdatedDate
+        FROM dbo.Leads l
+        LEFT JOIN dbo.MembershipPlans mp ON mp.MembershipPlanId = l.InterestedPlanId
+        LEFT JOIN dbo.Trainers tr ON tr.TrainerId = l.AssignedTrainerId
+        LEFT JOIN dbo.Users tu ON tu.Id = tr.UserId
+        WHERE l.IsDeleted = 0
+          AND (@GymId IS NULL OR l.GymId = @GymId)
+          AND (@TrainerId IS NULL OR l.AssignedTrainerId = @TrainerId)
+          AND (@Status IS NULL OR l.[Status] = @Status)
+          AND (@LeadSource IS NULL OR l.LeadSource = @LeadSource)
+          AND (@SearchPattern IS NULL OR l.FullName LIKE @SearchPattern OR l.MobileNumber LIKE @SearchPattern
+               OR l.Email LIKE @SearchPattern OR tu.Name LIKE @SearchPattern)
+    )
     SELECT * FROM Filtered
     ORDER BY
         CASE WHEN @SortColumn = N'FullName' AND @SortDirection = N'ASC' THEN FullName END ASC,

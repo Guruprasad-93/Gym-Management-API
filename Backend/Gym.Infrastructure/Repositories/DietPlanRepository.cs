@@ -24,6 +24,9 @@ public class DietPlanRepository : IDietPlanRepository
         _connectionFactory = connectionFactory;
     }
 
+    public Task SeedCategoriesAsync(Guid gymId, CancellationToken cancellationToken = default) =>
+        _sp.ExecuteAsync(StoredProcedureNames.SeedDietCategories, new { GymId = gymId }, cancellationToken);
+
     public async Task<IReadOnlyList<DietCategoryDto>> GetCategoriesAsync(
         Guid gymId, bool includeInactive, CancellationToken cancellationToken = default) =>
         (await _sp.QueryAsync<DietCategoryDto>(

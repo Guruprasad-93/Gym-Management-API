@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using Gym.API.IntegrationTests.Infrastructure;
+using Gym.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -31,7 +32,12 @@ public class AuthCookieTests : IAsyncLifetime
 
         var loginRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/login")
         {
-            Content = JsonContent.Create(new { email = "admin@fitzone-demo.com", password = "Demo@123" })
+            Content = JsonContent.Create(new
+            {
+                loginIdentifier = "admin",
+                gymId = DemoDataSeeder.DemoGymId,
+                password = "Demo@123"
+            })
         };
         if (!string.IsNullOrEmpty(csrf))
             loginRequest.Headers.Add("X-XSRF-TOKEN", csrf);
@@ -51,7 +57,7 @@ public class AuthCookieTests : IAsyncLifetime
         await clientNoCsrf.GetAsync("/api/auth/csrf");
         var loginResponse = await clientNoCsrf.PostAsJsonAsync(
             "/api/auth/login",
-            new { email = "admin@fitzone-demo.com", password = "Demo@123" });
+            new { loginIdentifier = "admin", gymId = DemoDataSeeder.DemoGymId, password = "Demo@123" });
         loginResponse.EnsureSuccessStatusCode();
 
         var changePassword = await clientNoCsrf.PostAsJsonAsync(
@@ -66,7 +72,7 @@ public class AuthCookieTests : IAsyncLifetime
     {
         await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(
             _client,
-            "admin@fitzone-demo.com",
+            DemoDataSeeder.DemoGymAdminLoginIdentifier,
             "Demo@123");
 
         var sessionResponse = await _client.GetAsync("/api/auth/session");

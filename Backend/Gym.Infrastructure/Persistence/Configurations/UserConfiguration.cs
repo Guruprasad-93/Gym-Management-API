@@ -19,12 +19,21 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasMaxLength(User.MaxNameLength);
 
-        builder.Property(u => u.Email)
+        builder.Property(u => u.LoginIdentifier)
             .IsRequired()
+            .HasMaxLength(User.MaxLoginIdentifierLength);
+
+        builder.Property(u => u.Email)
+            .IsRequired(false)
             .HasMaxLength(User.MaxEmailLength);
 
         builder.HasIndex(u => u.Email)
-            .IsUnique();
+            .IsUnique()
+            .HasFilter("[Email] IS NOT NULL");
+
+        builder.HasIndex(u => new { u.GymId, u.LoginIdentifier })
+            .IsUnique()
+            .HasFilter("[GymId] IS NOT NULL");
 
         builder.Property(u => u.Password)
             .IsRequired()

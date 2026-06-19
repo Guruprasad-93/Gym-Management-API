@@ -305,11 +305,23 @@ public class LeadService : ILeadService
         var gymId = lead.GymId;
         await _tenantLimits.EnsureCanAddMemberAsync(gymId, cancellationToken);
 
-        var email = (dto.Email ?? lead.Email)?.Trim().ToLowerInvariant();
-        if (string.IsNullOrWhiteSpace(email))
-            email = $"lead{lead.Id}.{lead.MobileNumber.Replace("+", "")}@members.local";
+        var email = string.IsNullOrWhiteSpace(dto.Email ?? lead.Email)
+            ? null
+            : (dto.Email ?? lead.Email)!.Trim().ToLowerInvariant();
 
-        if (await _userRepository.ExistsByEmailAsync(email, cancellationToken))
+        var loginIdentifier = !string.IsNullOrWhiteSpace(dto.LoginIdentifier)
+            ? Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier)
+            : Validation.LoginIdentifierRules.FromEmailLocalPart(email ?? $"lead{lead.Id}");
+
+        if (string.IsNullOrWhiteSpace(loginIdentifier))
+            loginIdentifier = $"lead{lead.Id}".ToLowerInvariant();
+
+        Validation.LoginIdentifierRules.Validate(loginIdentifier);
+
+        if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, gymId, cancellationToken))
+            throw new InvalidOperationException("A user with this login identifier already exists.");
+
+        if (!string.IsNullOrWhiteSpace(email) && await _userRepository.ExistsByEmailAsync(email, cancellationToken))
             throw new InvalidOperationException("A user with this email already exists.");
 
         string? temporaryPassword = null;
@@ -319,13 +331,14 @@ public class LeadService : ILeadService
         if (string.IsNullOrWhiteSpace(dto.Password))
             temporaryPassword = plainPassword;
 
-        var user = User.Create(lead.FullName.Trim(), email, _passwordHasher.Hash(plainPassword), gymId);
+        var user = User.Create(lead.FullName.Trim(), loginIdentifier, _passwordHasher.Hash(plainPassword), gymId, email);
         await _userRepository.AddAsync(user, cancellationToken);
 
         var member = await _memberRepository.CreateAsync(gymId, user.Id, new CreateMemberDto
         {
             GymId = gymId,
             Name = lead.FullName.Trim(),
+            LoginIdentifier = loginIdentifier,
             Email = email,
             Password = plainPassword,
             Phone = lead.MobileNumber,

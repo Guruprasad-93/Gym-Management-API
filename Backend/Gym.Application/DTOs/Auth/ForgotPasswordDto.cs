@@ -2,5 +2,6 @@ namespace Gym.Application.DTOs.Auth;
 
 public class ForgotPasswordDto
 {
-    public string Email { get; set; } = string.Empty;
+    public string LoginIdentifier { get; set; } = string.Empty;
+    public Guid? GymId { get; set; }
 }

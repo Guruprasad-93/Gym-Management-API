@@ -7,6 +7,6 @@ public class ForgotPasswordDtoValidator : AbstractValidator<ForgotPasswordDto>
 {
     public ForgotPasswordDtoValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.LoginIdentifier).ValidLoginIdentifier();
     }
 }

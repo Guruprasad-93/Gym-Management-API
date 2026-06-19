@@ -106,7 +106,10 @@ public class MemberRepository : IMemberRepository
             MemberId = memberId,
             GymId = gymId,
             dto.FullName,
-            Email = dto.Email?.Trim().ToLowerInvariant(),
+            LoginIdentifier = string.IsNullOrWhiteSpace(dto.LoginIdentifier)
+                ? null
+                : dto.LoginIdentifier.Trim().ToLowerInvariant(),
+            Email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email.Trim().ToLowerInvariant(),
             dto.TrainerId,
             dto.DateOfBirth,
             dto.Gender,

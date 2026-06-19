@@ -33,6 +33,11 @@ public class ExpenseService : IExpenseService
     public async Task<IReadOnlyList<ExpenseCategoryDto>> GetCategoriesAsync(Guid? gymId = null, CancellationToken cancellationToken = default)
     {
         var scope = ResolveGymScopeForQuery(gymId);
+        var categories = await _repository.GetCategoriesAsync(scope, cancellationToken);
+        if (categories.Count > 0)
+            return categories;
+
+        await _repository.SeedCategoriesAsync(scope, cancellationToken);
         return await _repository.GetCategoriesAsync(scope, cancellationToken);
     }
 

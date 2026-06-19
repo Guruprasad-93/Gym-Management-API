@@ -47,6 +47,8 @@ public class ExceptionHandlingMiddleware
             InvalidOperationException => (HttpStatusCode.Conflict, exception.Message),
             ArgumentException => (HttpStatusCode.BadRequest, exception.Message),
             SqlException sqlEx when sqlEx.Number >= 50000 => (HttpStatusCode.BadRequest, sqlEx.Message),
+            SqlException sqlEx when sqlEx.Number is 2627 or 2601 =>
+                (HttpStatusCode.Conflict, UniqueConstraintMessage(sqlEx)),
             _ => (HttpStatusCode.InternalServerError, "An unexpected error occurred.")
         };
 
@@ -58,5 +60,13 @@ public class ExceptionHandlingMiddleware
 
         var response = ApiResponse<object>.Fail(message);
         await context.Response.WriteAsync(JsonSerializer.Serialize(response, JsonOptions));
+    }
+
+    private static string UniqueConstraintMessage(SqlException sqlEx)
+    {
+        var text = sqlEx.Message;
+        if (text.Contains("UX_Branches_Gym_Code", StringComparison.OrdinalIgnoreCase))
+            return "A branch with this code already exists. The default branch uses code MAIN — choose a different code.";
+        return "A record with this value already exists.";
     }
 }

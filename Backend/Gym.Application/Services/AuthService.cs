@@ -25,6 +25,7 @@ public class AuthService : IAuthService
     private readonly PasswordResetSettings _passwordResetSettings;
     private readonly IHostEnvironment _hostEnvironment;
     private readonly ISaasSubscriptionRepository _saasRepository;
+    private readonly IGymMenuRepository _gymMenuRepository;
 
     public AuthService(
         IUserRepository userRepository,
@@ -39,7 +40,8 @@ public class AuthService : IAuthService
         IOptions<JwtSettings> jwtSettings,
         IOptions<PasswordResetSettings> passwordResetSettings,
         IHostEnvironment hostEnvironment,
-        ISaasSubscriptionRepository saasRepository)
+        ISaasSubscriptionRepository saasRepository,
+        IGymMenuRepository gymMenuRepository)
     {
         _userRepository = userRepository;
         _authRepository = authRepository;
@@ -54,6 +56,7 @@ public class AuthService : IAuthService
         _passwordResetSettings = passwordResetSettings.Value;
         _hostEnvironment = hostEnvironment;
         _saasRepository = saasRepository;
+        _gymMenuRepository = gymMenuRepository;
     }
 
     public async Task<LoginResponseDto> LoginAsync(
@@ -62,15 +65,16 @@ public class AuthService : IAuthService
         string? ipAddress,
         CancellationToken cancellationToken = default)
     {
-        var email = dto.Email.Trim().ToLowerInvariant();
-        var loginUser = await _authRepository.LoginUserAsync(email, cancellationToken)
-            ?? throw new UnauthorizedAccessException("Invalid email or password.");
+        var loginIdentifier = Gym.Application.Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
+        Gym.Application.Validation.LoginIdentifierRules.Validate(loginIdentifier);
+        var loginUser = await _authRepository.LoginUserAsync(loginIdentifier, dto.GymId, cancellationToken)
+            ?? throw new UnauthorizedAccessException("Invalid login identifier or password.");
 
         if (!loginUser.UserIsActive)
             throw new UnauthorizedAccessException("Your account is inactive.");
 
         if (!_passwordHasher.Verify(dto.Password, loginUser.PasswordHash))
-            throw new UnauthorizedAccessException("Invalid email or password.");
+            throw new UnauthorizedAccessException("Invalid login identifier or password.");
 
         if (loginUser.GymId.HasValue && !loginUser.GymIsActive)
             throw new UnauthorizedAccessException("Your gym is inactive.");
@@ -166,14 +170,15 @@ public class AuthService : IAuthService
         ForgotPasswordDto dto,
         CancellationToken cancellationToken = default)
     {
-        var email = dto.Email.Trim().ToLowerInvariant();
-        var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+        var loginIdentifier = Gym.Application.Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
+        Gym.Application.Validation.LoginIdentifierRules.Validate(loginIdentifier);
+        var user = await _userRepository.GetByLoginIdentifierAsync(loginIdentifier, dto.GymId, cancellationToken);
 
         if (user is null || !user.IsActive)
         {
             return new ForgotPasswordResponseDto
             {
-                Message = "If the email exists, a password reset link has been sent."
+                Message = "If the account exists, a password reset link has been sent."
             };
         }
 
@@ -181,19 +186,20 @@ public class AuthService : IAuthService
         var tokenHash = HashToken(resetToken);
         var expiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.PasswordResetTokenExpiryMinutes);
 
-        await _authRepository.SetPasswordResetTokenAsync(email, tokenHash, expiresAt, cancellationToken);
+        await _authRepository.SetPasswordResetTokenAsync(loginIdentifier, dto.GymId, tokenHash, expiresAt, cancellationToken);
 
         var includeDevReset = _hostEnvironment.IsDevelopment() && _jwtSettings.ReturnResetTokenInDevelopment;
         string? resetLink = null;
         if (includeDevReset)
         {
             var baseUrl = _passwordResetSettings.FrontendBaseUrl.TrimEnd('/');
-            resetLink = $"{baseUrl}/auth/reset-password?email={Uri.EscapeDataString(email)}&token={Uri.EscapeDataString(resetToken)}";
+            var gymQuery = dto.GymId.HasValue ? $"&gymId={dto.GymId.Value}" : string.Empty;
+            resetLink = $"{baseUrl}/auth/reset-password?loginIdentifier={Uri.EscapeDataString(loginIdentifier)}&token={Uri.EscapeDataString(resetToken)}{gymQuery}";
         }
 
         return new ForgotPasswordResponseDto
         {
-            Message = "If the email exists, a password reset link has been sent.",
+            Message = "If the account exists, a password reset link has been sent.",
             ResetToken = includeDevReset ? resetToken : null,
             ResetLink = resetLink
         };
@@ -201,11 +207,13 @@ public class AuthService : IAuthService
 
     public async Task ResetPasswordAsync(ResetPasswordDto dto, CancellationToken cancellationToken = default)
     {
-        var email = dto.Email.Trim().ToLowerInvariant();
+        var loginIdentifier = Gym.Application.Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
+        Gym.Application.Validation.LoginIdentifierRules.Validate(loginIdentifier);
         var tokenHash = HashToken(dto.Token.Trim());
 
         var success = await _authRepository.ResetPasswordAsync(
-            email,
+            loginIdentifier,
+            dto.GymId,
             tokenHash,
             _passwordHasher.Hash(dto.NewPassword),
             cancellationToken);
@@ -213,7 +221,7 @@ public class AuthService : IAuthService
         if (!success)
             throw new UnauthorizedAccessException("Invalid or expired reset token.");
 
-        var user = await _userRepository.GetByEmailAsync(email, cancellationToken);
+        var user = await _userRepository.GetByLoginIdentifierAsync(loginIdentifier, dto.GymId, cancellationToken);
         if (user is not null)
         {
             await _authRepository.EndAllSessionsForUserAsync(user.Id, cancellationToken);
@@ -245,6 +253,7 @@ public class AuthService : IAuthService
 
         var roles = await _permissionResolver.GetRolesForUserAsync(userId, cancellationToken);
         var permissions = await _permissionResolver.GetPermissionsForUserAsync(userId, cancellationToken);
+        var enabledMenuCodes = await GetEnabledMenuCodesAsync(loginContext.GymId, cancellationToken);
 
         return new SessionPermissionsDto
         {
@@ -255,6 +264,7 @@ public class AuthService : IAuthService
             GymName = loginContext.GymName,
             Roles = roles,
             Permissions = permissions,
+            EnabledMenuCodes = enabledMenuCodes,
             RefreshedAt = DateTime.UtcNow
         };
     }
@@ -318,6 +328,7 @@ public class AuthService : IAuthService
 
         var roles = await _permissionResolver.GetRolesForUserAsync(userId, cancellationToken);
         var permissions = await _permissionResolver.GetPermissionsForUserAsync(userId, cancellationToken);
+        var enabledMenuCodes = await GetEnabledMenuCodesAsync(loginContext.GymId, cancellationToken);
 
         var tokenContext = new TokenGenerationContext
         {
@@ -357,8 +368,17 @@ public class AuthService : IAuthService
             TokenVersion = tokenVersion,
             Roles = roles,
             Permissions = permissions,
+            EnabledMenuCodes = enabledMenuCodes,
             MustChangePassword = loginContext.MustChangePassword
         };
+    }
+
+    private async Task<IReadOnlyList<string>> GetEnabledMenuCodesAsync(Guid? gymId, CancellationToken cancellationToken)
+    {
+        if (!gymId.HasValue)
+            return Array.Empty<string>();
+
+        return await _gymMenuRepository.GetEnabledMenuCodesAsync(gymId.Value, cancellationToken);
     }
 
     /// <summary>

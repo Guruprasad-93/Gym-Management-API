@@ -5,6 +5,7 @@ namespace Gym.Application.Interfaces;
 
 public interface IExpenseRepository
 {
+    Task SeedCategoriesAsync(Guid gymId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ExpenseCategoryDto>> GetCategoriesAsync(Guid gymId, CancellationToken cancellationToken = default);
     Task<ExpenseDto> CreateAsync(Guid gymId, Guid? createdBy, CreateExpenseDto dto, CancellationToken cancellationToken = default);
     Task UpdateAsync(int expenseId, Guid gymId, UpdateExpenseDto dto, CancellationToken cancellationToken = default);

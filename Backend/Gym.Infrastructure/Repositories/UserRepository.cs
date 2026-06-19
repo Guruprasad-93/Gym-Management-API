@@ -14,9 +14,22 @@ public class UserRepository : IUserRepository
 
     public async Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(email))
+            return false;
+
         var exists = await _sp.QuerySingleOrDefaultAsync<bool>(
             StoredProcedureNames.UserExistsByEmail,
-            new { Email = email },
+            new { Email = email.Trim().ToLowerInvariant() },
+            cancellationToken);
+
+        return exists;
+    }
+
+    public async Task<bool> ExistsByLoginIdentifierAsync(string loginIdentifier, Guid? gymId, CancellationToken cancellationToken = default)
+    {
+        var exists = await _sp.QuerySingleOrDefaultAsync<bool>(
+            StoredProcedureNames.UserExistsByLoginIdentifier,
+            new { LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(), GymId = gymId },
             cancellationToken);
 
         return exists;
@@ -24,9 +37,22 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(email))
+            return null;
+
         var row = await _sp.QuerySingleOrDefaultAsync<UserRow>(
             StoredProcedureNames.GetUserByEmail,
-            new { Email = email },
+            new { Email = email.Trim().ToLowerInvariant() },
+            cancellationToken);
+
+        return row is null ? null : EntityMapper.ToUser(row);
+    }
+
+    public async Task<User?> GetByLoginIdentifierAsync(string loginIdentifier, Guid? gymId, CancellationToken cancellationToken = default)
+    {
+        var row = await _sp.QuerySingleOrDefaultAsync<UserRow>(
+            StoredProcedureNames.GetUserByLoginIdentifier,
+            new { LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(), GymId = gymId },
             cancellationToken);
 
         return row is null ? null : EntityMapper.ToUser(row);
@@ -50,6 +76,7 @@ public class UserRepository : IUserRepository
             {
                 user.Id,
                 user.Name,
+                user.LoginIdentifier,
                 user.Email,
                 user.Password,
                 user.GymId

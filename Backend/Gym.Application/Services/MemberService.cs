@@ -44,12 +44,17 @@ public class MemberService : IMemberService
         EnsureCanManageMembers();
         var gymId = ResolveGymIdForMutation(dto.GymId);
         await _tenantLimits.EnsureCanAddMemberAsync(gymId, cancellationToken);
-        var email = dto.Email.Trim().ToLowerInvariant();
+        var loginIdentifier = Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
+        Validation.LoginIdentifierRules.Validate(loginIdentifier);
+        var email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email.Trim().ToLowerInvariant();
 
-        if (await _userRepository.ExistsByEmailAsync(email, cancellationToken))
+        if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, gymId, cancellationToken))
+            throw new InvalidOperationException("A user with this login identifier already exists.");
+
+        if (!string.IsNullOrWhiteSpace(email) && await _userRepository.ExistsByEmailAsync(email, cancellationToken))
             throw new InvalidOperationException("A user with this email already exists.");
 
-        var user = User.Create(dto.Name.Trim(), email, _passwordHasher.Hash(dto.Password), gymId);
+        var user = User.Create(dto.Name.Trim(), loginIdentifier, _passwordHasher.Hash(dto.Password), gymId, email);
         await _userRepository.AddAsync(user, cancellationToken);
 
         var created = await _memberRepository.CreateAsync(gymId, user.Id, dto, cancellationToken);
@@ -165,6 +170,31 @@ public class MemberService : IMemberService
     {
         var member = await GetMemberWithAccessCheckAsync(id, cancellationToken);
         EnsureCanManageMembers();
+
+        if (!string.IsNullOrWhiteSpace(dto.LoginIdentifier))
+        {
+            var loginIdentifier = Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
+            Validation.LoginIdentifierRules.Validate(loginIdentifier);
+
+            if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, member.GymId, cancellationToken))
+            {
+                var conflict = await _userRepository.GetByLoginIdentifierAsync(loginIdentifier, member.GymId, cancellationToken);
+                if (conflict is not null && conflict.Id != member.UserId)
+                    throw new InvalidOperationException("A user with this login identifier already exists.");
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(dto.Email))
+        {
+            var email = dto.Email.Trim().ToLowerInvariant();
+            if (await _userRepository.ExistsByEmailAsync(email, cancellationToken))
+            {
+                var emailUser = await _userRepository.GetByEmailAsync(email, cancellationToken);
+                if (emailUser is not null && emailUser.Id != member.UserId)
+                    throw new InvalidOperationException("A user with this email already exists.");
+            }
+        }
+
         var oldValue = SnapshotMember(member);
         await _memberRepository.UpdateAsync(id, member.GymId, dto, cancellationToken);
         var updated = (await _memberRepository.GetByIdAsync(id, ResolveGymScopeForMember(member.GymId), null, cancellationToken))!;
@@ -200,6 +230,7 @@ public class MemberService : IMemberService
         m.Id,
         m.GymId,
         m.FullName,
+        m.LoginIdentifier,
         m.Email,
         m.Phone,
         m.TrainerId,

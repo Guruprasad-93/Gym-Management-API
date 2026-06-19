@@ -57,14 +57,20 @@ public class TrainerService : ITrainerService
         Guid? userId = dto.UserId;
         if (userId is null)
         {
-            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
-                throw new ArgumentException("Name, email, and password are required when UserId is not provided.");
+            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.LoginIdentifier) || string.IsNullOrWhiteSpace(dto.Password))
+                throw new ArgumentException("Name, login identifier, and password are required when UserId is not provided.");
 
-            var email = dto.Email.Trim().ToLowerInvariant();
-            if (await _userRepository.ExistsByEmailAsync(email, cancellationToken))
+            var loginIdentifier = Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
+            Validation.LoginIdentifierRules.Validate(loginIdentifier);
+            var email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email.Trim().ToLowerInvariant();
+
+            if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, gymId, cancellationToken))
+                throw new InvalidOperationException("A user with this login identifier already exists.");
+
+            if (!string.IsNullOrWhiteSpace(email) && await _userRepository.ExistsByEmailAsync(email, cancellationToken))
                 throw new InvalidOperationException("A user with this email already exists.");
 
-            var user = User.Create(dto.Name.Trim(), email, _passwordHasher.Hash(dto.Password), gymId);
+            var user = User.Create(dto.Name.Trim(), loginIdentifier, _passwordHasher.Hash(dto.Password), gymId, email);
             await _userRepository.AddAsync(user, cancellationToken);
             userId = user.Id;
 

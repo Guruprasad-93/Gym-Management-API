@@ -9,6 +9,9 @@ public class UpdateMemberDtoValidator : AbstractValidator<UpdateMemberDto>
     public UpdateMemberDtoValidator()
     {
         RuleFor(x => x.FullName).MaximumLength(100);
+        RuleFor(x => x.LoginIdentifier!)
+            .ValidLoginIdentifier()
+            .When(x => !string.IsNullOrWhiteSpace(x.LoginIdentifier));
         RuleFor(x => x.Email).EmailAddress().MaximumLength(256).When(x => !string.IsNullOrWhiteSpace(x.Email));
         RuleFor(x => x.Gender).MaximumLength(20);
         RuleFor(x => x.Phone).OptionalPhoneNumber();

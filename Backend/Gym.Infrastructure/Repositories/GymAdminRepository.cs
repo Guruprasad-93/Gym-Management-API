@@ -18,7 +18,8 @@ public class GymAdminRepository : IGymAdminRepository
         Guid userId,
         Guid gymId,
         string name,
-        string email,
+        string loginIdentifier,
+        string? email,
         string passwordHash,
         bool mustChangePassword,
         CancellationToken cancellationToken = default) =>
@@ -27,7 +28,8 @@ public class GymAdminRepository : IGymAdminRepository
             UserId = userId,
             GymId = gymId,
             Name = name,
-            Email = email,
+            LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(),
+            Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant(),
             Password = passwordHash,
             MustChangePassword = mustChangePassword
         }, cancellationToken);
@@ -102,7 +104,8 @@ public class GymAdminRepository : IGymAdminRepository
         GymId = row.GymId,
         GymName = row.GymName ?? string.Empty,
         Name = row.Name,
-        Email = row.Email,
+        LoginIdentifier = row.LoginIdentifier,
+        Email = row.Email ?? string.Empty,
         IsActive = row.IsActive,
         MustChangePassword = row.MustChangePassword,
         CreatedDate = row.CreatedDate

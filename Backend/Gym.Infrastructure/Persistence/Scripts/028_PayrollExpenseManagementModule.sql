@@ -228,8 +228,12 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM dbo.ExpenseCategories WHERE CategoryId = @CategoryId AND GymId = @GymId AND IsActive = 1)
         THROW 50001, 'Invalid expense category.', 1;
 
-    INSERT INTO dbo.Expenses (GymId, CategoryId, Amount, ExpenseDate, [Description], VendorName, PaymentMethod, AttachmentFileId, CreatedBy)
-    VALUES (@GymId, @CategoryId, @Amount, @ExpenseDate, @Description, @VendorName, @PaymentMethod, @AttachmentFileId, @CreatedBy);
+    INSERT INTO dbo.Expenses (
+        GymId, CategoryId, Amount, ExpenseDate, [Description], VendorName,
+        PaymentMethod, AttachmentFileId, CreatedBy, CreatedDate)
+    VALUES (
+        @GymId, @CategoryId, @Amount, @ExpenseDate, @Description, @VendorName,
+        @PaymentMethod, @AttachmentFileId, @CreatedBy, SYSUTCDATETIME());
     SET @ExpenseId = SCOPE_IDENTITY();
 END
 GO

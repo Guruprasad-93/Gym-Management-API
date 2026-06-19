@@ -9,6 +9,7 @@ internal static class EntityMapper
         User.Hydrate(
             row.Id,
             row.Name,
+            row.LoginIdentifier,
             row.Email,
             row.Password,
             row.GymId,
@@ -46,7 +47,8 @@ internal static class EntityMapper
                 row.UserRoleId,
                 row.UserId,
                 row.UserName ?? string.Empty,
-                row.UserEmail ?? string.Empty,
+                row.UserLoginIdentifier ?? row.UserEmail ?? string.Empty,
+                row.UserEmail,
                 row.RoleId,
                 row.RoleName ?? string.Empty,
                 row.CreatedAt,

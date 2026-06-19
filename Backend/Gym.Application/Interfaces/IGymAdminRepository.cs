@@ -9,7 +9,8 @@ public interface IGymAdminRepository
         Guid userId,
         Guid gymId,
         string name,
-        string email,
+        string loginIdentifier,
+        string? email,
         string passwordHash,
         bool mustChangePassword,
         CancellationToken cancellationToken = default);

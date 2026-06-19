@@ -34,8 +34,16 @@ public class WorkoutPlanService : IWorkoutPlanService
     }
 
     public async Task<IReadOnlyList<ExerciseCategoryDto>> GetCategoriesAsync(
-        bool includeInactive, CancellationToken cancellationToken = default) =>
-        await _repository.GetCategoriesAsync(ResolveGymIdForMutation(null), includeInactive, cancellationToken);
+        bool includeInactive, CancellationToken cancellationToken = default)
+    {
+        var gymId = ResolveGymIdForMutation(null);
+        var categories = await _repository.GetCategoriesAsync(gymId, includeInactive, cancellationToken);
+        if (categories.Count > 0)
+            return categories;
+
+        await SeedWorkoutDefaultsAsync(gymId, cancellationToken);
+        return await _repository.GetCategoriesAsync(gymId, includeInactive, cancellationToken);
+    }
 
     public async Task<ExerciseCategoryDto> CreateCategoryAsync(
         CreateExerciseCategoryDto dto, CancellationToken cancellationToken = default)
@@ -44,9 +52,19 @@ public class WorkoutPlanService : IWorkoutPlanService
         return await _repository.CreateCategoryAsync(ResolveGymIdForMutation(null), dto, cancellationToken);
     }
 
-    public Task<IReadOnlyList<ExerciseDto>> GetExercisesAsync(
-        bool includeInactive, int? categoryId, string? muscleGroup, string? search, CancellationToken cancellationToken = default) =>
-        _repository.GetExercisesAsync(ResolveGymScope(), includeInactive, categoryId, muscleGroup, search, cancellationToken);
+    public async Task<IReadOnlyList<ExerciseDto>> GetExercisesAsync(
+        bool includeInactive, int? categoryId, string? muscleGroup, string? search, CancellationToken cancellationToken = default)
+    {
+        var exercises = await _repository.GetExercisesAsync(
+            ResolveGymScope(), includeInactive, categoryId, muscleGroup, search, cancellationToken);
+        if (exercises.Count > 0 || categoryId.HasValue || !string.IsNullOrWhiteSpace(muscleGroup) || !string.IsNullOrWhiteSpace(search))
+            return exercises;
+
+        var gymId = ResolveGymIdForMutation(null);
+        await SeedWorkoutDefaultsAsync(gymId, cancellationToken);
+        return await _repository.GetExercisesAsync(
+            ResolveGymScope(), includeInactive, categoryId, muscleGroup, search, cancellationToken);
+    }
 
     public async Task<ExerciseDto> GetExerciseByIdAsync(int id, CancellationToken cancellationToken = default) =>
         await _repository.GetExerciseByIdAsync(id, ResolveGymScope(), cancellationToken)
@@ -395,4 +413,10 @@ public class WorkoutPlanService : IWorkoutPlanService
 
     private Guid ResolveGymScope(Guid? requestedGymId = null) =>
         GymScopeResolver.ResolveRequired(_currentUser, requestedGymId);
+
+    private async Task SeedWorkoutDefaultsAsync(Guid gymId, CancellationToken cancellationToken)
+    {
+        await _repository.SeedExerciseCategoriesAsync(gymId, cancellationToken);
+        await _repository.SeedExerciseLibraryAsync(gymId, cancellationToken);
+    }
 }

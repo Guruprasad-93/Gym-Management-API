@@ -13,17 +13,23 @@ public class WhiteLabelService : IWhiteLabelService
 {
     private readonly IWhiteLabelRepository _repository;
     private readonly IWebsiteRepository _websiteRepository;
+    private readonly IFileRepository _fileRepository;
+    private readonly IFileDownloadUrlSigner _urlSigner;
     private readonly IAuditService _auditService;
     private readonly ICurrentUserService _currentUser;
 
     public WhiteLabelService(
         IWhiteLabelRepository repository,
         IWebsiteRepository websiteRepository,
+        IFileRepository fileRepository,
+        IFileDownloadUrlSigner urlSigner,
         IAuditService auditService,
         ICurrentUserService currentUser)
     {
         _repository = repository;
         _websiteRepository = websiteRepository;
+        _fileRepository = fileRepository;
+        _urlSigner = urlSigner;
         _auditService = auditService;
         _currentUser = currentUser;
     }
@@ -74,6 +80,15 @@ public class WhiteLabelService : IWhiteLabelService
     public Task<WhiteLabelLoginBrandingDto?> GetLoginBrandingAsync(WhiteLabelLoginBrandingQueryDto query, CancellationToken cancellationToken = default) =>
         _repository.GetLoginBrandingAsync(query, cancellationToken);
 
+    public async Task<WhiteLabelLoginBrandingDto> GetAppBrandingAsync(CancellationToken cancellationToken = default)
+    {
+        var gymId = GymScopeResolver.ResolveRequired(_currentUser, null);
+        var settings = await _repository.GetSettingsAsync(gymId, cancellationToken);
+        var branding = MapSettingsToLoginBranding(gymId, settings);
+        await ApplyFreshLogoUrlAsync(gymId, settings, branding, cancellationToken);
+        return branding;
+    }
+
     public async Task<WhiteLabelPreviewDto> GetPreviewAsync(CancellationToken cancellationToken = default)
     {
         EnsureCanView();
@@ -100,21 +115,41 @@ public class WhiteLabelService : IWhiteLabelService
 
         return new WhiteLabelPreviewDto
         {
-            Login = new WhiteLabelLoginBrandingDto
-            {
-                GymId = gymId,
-                BrandName = settings.BrandName,
-                AppDisplayName = settings.AppDisplayName ?? settings.BrandName,
-                PrimaryColor = settings.PrimaryColor,
-                SecondaryColor = settings.SecondaryColor,
-                SupportEmail = settings.SupportEmail,
-                SupportPhone = settings.SupportPhone,
-                LogoUrl = settings.LogoUrl,
-                LoginBackgroundUrl = settings.LoginBackgroundUrl
-            },
+            Login = MapSettingsToLoginBranding(gymId, settings),
             Website = website,
             Mobile = mobile
         };
+    }
+
+    private static WhiteLabelLoginBrandingDto MapSettingsToLoginBranding(Guid gymId, WhiteLabelSettingsDto? settings) =>
+        new()
+        {
+            GymId = gymId,
+            BrandName = settings?.BrandName ?? string.Empty,
+            AppDisplayName = settings?.AppDisplayName ?? settings?.BrandName,
+            PrimaryColor = settings?.PrimaryColor,
+            SecondaryColor = settings?.SecondaryColor,
+            SupportEmail = settings?.SupportEmail,
+            SupportPhone = settings?.SupportPhone,
+            LogoUrl = settings?.LogoUrl,
+            LoginBackgroundUrl = settings?.LoginBackgroundUrl
+        };
+
+    private async Task ApplyFreshLogoUrlAsync(
+        Guid gymId,
+        WhiteLabelSettingsDto? settings,
+        WhiteLabelLoginBrandingDto branding,
+        CancellationToken cancellationToken)
+    {
+        if (settings?.LogoFileId is long whiteLabelFileId)
+        {
+            branding.LogoUrl = _urlSigner.CreateSignedDownloadUrl(whiteLabelFileId, gymId);
+            return;
+        }
+
+        var gymLogo = await _fileRepository.GetGymLogoAsync(gymId, cancellationToken);
+        if (gymLogo is not null)
+            branding.LogoUrl = _urlSigner.CreateSignedDownloadUrl(gymLogo.FileId, gymId);
     }
 
     public async Task ApplyWebsiteBrandingDefaultsAsync(Guid gymId, WhiteLabelWebsitePreviewDto target, CancellationToken cancellationToken = default)

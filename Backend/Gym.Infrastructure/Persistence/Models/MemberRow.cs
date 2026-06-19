@@ -7,6 +7,7 @@ internal sealed class MemberRow
     public Guid UserId { get; set; }
     public int? TrainerId { get; set; }
     public string FullName { get; set; } = string.Empty;
+    public string LoginIdentifier { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string? UserName { get; set; }
     public string? UserEmail { get; set; }

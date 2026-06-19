@@ -232,7 +232,24 @@ public class MobilePushService : IMobilePushService
     public async Task SendCampaignAsync(SendPushCampaignDto dto, CancellationToken cancellationToken = default)
     {
         var gymId = GymScopeResolver.ResolveRequired(_currentUser, null);
-        IReadOnlyList<Guid> userIds = dto.UserIds ?? await _repository.GetMemberUserIdsAsync(gymId, dto.BranchId, cancellationToken);
+        var audience = string.IsNullOrWhiteSpace(dto.TargetAudience)
+            ? PushCampaignAudiences.ActiveMembers
+            : dto.TargetAudience.Trim();
+
+        if (string.Equals(audience, PushCampaignAudiences.SelectedMembers, StringComparison.OrdinalIgnoreCase)
+            && (dto.UserIds is null || dto.UserIds.Count == 0))
+        {
+            throw new ArgumentException("Select at least one member for the selected audience.");
+        }
+
+        IReadOnlyList<Guid> userIds = string.Equals(audience, PushCampaignAudiences.SelectedMembers, StringComparison.OrdinalIgnoreCase)
+            ? await _repository.GetCampaignRecipientUserIdsAsync(
+                gymId, audience, dto.BranchId, dto.ExpiringWithinDays, dto.UserIds, cancellationToken)
+            : await _repository.GetCampaignRecipientUserIdsAsync(
+                gymId, audience, dto.BranchId, dto.ExpiringWithinDays, null, cancellationToken);
+
+        if (userIds.Count == 0)
+            throw new ArgumentException("No recipients match the selected audience. Members must have the mobile app installed with a registered device token.");
 
         foreach (var userId in userIds)
         {
@@ -251,7 +268,7 @@ public class MobilePushService : IMobilePushService
             EntityName = AuditEntityNames.PushNotification,
             EntityId = dto.Title,
             ActionType = AuditActionTypes.Send,
-            NewValue = new { dto.Title, dto.Message, RecipientCount = userIds.Count }
+            NewValue = new { dto.Title, dto.Message, dto.TargetAudience, RecipientCount = userIds.Count }
         }, cancellationToken);
     }
 

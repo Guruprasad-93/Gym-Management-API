@@ -111,6 +111,7 @@ public class ConvertLeadToMemberDto
     public Guid? GymId { get; set; }
     public int MembershipPlanId { get; set; }
     public DateOnly StartDate { get; set; }
+    public string? LoginIdentifier { get; set; }
     public string? Email { get; set; }
     public string? Password { get; set; }
 }

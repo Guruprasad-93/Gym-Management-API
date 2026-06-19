@@ -5,10 +5,13 @@ using Gym.Application.DTOs.Memberships;
 using Gym.Application.DTOs.Payments;
 using Gym.Application.DTOs.Trainers;
 using Gym.Application.Interfaces;
+using Gym.Application.Options;
+using Gym.Application.Validation;
 using Gym.Domain.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Gym.Infrastructure.Persistence;
 
@@ -19,6 +22,8 @@ public static class DemoDataSeeder
 {
     public const string DemoGymName = "FitZone Demo Gym";
     public const string DemoGymAdminEmail = "admin@fitzone-demo.com";
+    public const string DemoGymAdminLoginIdentifier = "admin";
+    public static readonly Guid DemoGymId = Guid.Parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
     public const string DefaultDemoPassword = "Demo@123";
 
     public static async Task SeedAsync(IServiceProvider serviceProvider)
@@ -34,15 +39,18 @@ public static class DemoDataSeeder
         var demoPassword = configuration["Demo:Password"] ?? DefaultDemoPassword;
 
         var existingGyms = await gymRepository.GetAllAsync();
-        if (existingGyms.Any(g => string.Equals(g.Name, DemoGymName, StringComparison.OrdinalIgnoreCase)))
+        var existingDemo = existingGyms.FirstOrDefault(g =>
+            string.Equals(g.Name, DemoGymName, StringComparison.OrdinalIgnoreCase));
+        if (existingDemo is not null)
         {
+            await EnsureDemoGymHasActiveSubscriptionAsync(services, existingDemo.Id, logger);
             logger.LogInformation("Demo gym '{GymName}' already exists — skipping demo seed.", DemoGymName);
             return;
         }
 
         await EnsureSuperAdminAsync(services, configuration, logger);
 
-        var gymId = Guid.NewGuid();
+        var gymId = DemoGymId;
         await gymRepository.CreateAsync(gymId, new CreateGymDto
         {
             Name = DemoGymName,
@@ -50,21 +58,23 @@ public static class DemoDataSeeder
             Phone = "+1-555-0100",
             Email = "contact@fitzone-demo.com"
         });
+        await EnsureDemoGymHasActiveSubscriptionAsync(services, gymId, logger);
 
         var gymAdminRepository = services.GetRequiredService<IGymAdminRepository>();
-        if (!await services.GetRequiredService<IUserRepository>().ExistsByEmailAsync(DemoGymAdminEmail))
+        var userRepository = services.GetRequiredService<IUserRepository>();
+        if (!await userRepository.ExistsByLoginIdentifierAsync(DemoGymAdminLoginIdentifier, gymId))
         {
             await gymAdminRepository.CreateAsync(
                 Guid.NewGuid(),
                 gymId,
                 "Demo Gym Admin",
+                DemoGymAdminLoginIdentifier,
                 DemoGymAdminEmail,
                 services.GetRequiredService<IPasswordHasher>().Hash(demoPassword),
                 mustChangePassword: false);
         }
 
         var passwordHasher = services.GetRequiredService<IPasswordHasher>();
-        var userRepository = services.GetRequiredService<IUserRepository>();
         var userRoleRepository = services.GetRequiredService<IUserRoleRepository>();
         var roleRepository = services.GetRequiredService<IRoleRepository>();
         var trainerRepository = services.GetRequiredService<ITrainerRepository>();
@@ -216,6 +226,25 @@ public static class DemoDataSeeder
             demoPassword);
     }
 
+    private static async Task EnsureDemoGymHasActiveSubscriptionAsync(
+        IServiceProvider services,
+        Guid gymId,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        var saasRepository = services.GetRequiredService<ISaasSubscriptionRepository>();
+        var settings = services.GetRequiredService<IOptions<SaasSubscriptionSettings>>().Value;
+        var limit = await saasRepository.CheckTenantLimitAsync(gymId, "Member", cancellationToken);
+        if (limit.HasAccess)
+            return;
+
+        await saasRepository.CreateTrialSubscriptionAsync(gymId, settings.GracePeriodDays, cancellationToken);
+        logger.LogWarning(
+            "Demo gym subscription was missing or expired for {GymId} — started a new {TrialDays}-day trial.",
+            gymId,
+            settings.TrialDays);
+    }
+
     private static async Task EnsureSuperAdminAsync(
         IServiceProvider services,
         IConfiguration configuration,
@@ -238,8 +267,10 @@ public static class DemoDataSeeder
 
         var user = User.Create(
             "Super Admin",
-            email,
-            services.GetRequiredService<IPasswordHasher>().Hash(bootstrapPassword));
+            LoginIdentifierRules.FromEmailLocalPart(email) is { Length: > 0 } id ? id : "superadmin",
+            services.GetRequiredService<IPasswordHasher>().Hash(bootstrapPassword),
+            gymId: null,
+            email: email);
 
         await userRepository.AddAsync(user);
         await userRoleRepository.AddAsync(UserRole.Create(user.Id, superAdminRole.Id));
@@ -268,7 +299,7 @@ public static class DemoDataSeeder
                 ?? throw new InvalidOperationException($"Trainer user {email} exists but trainer profile is missing.");
         }
 
-        var user = User.Create(name, normalizedEmail, passwordHasher.Hash(password), gymId);
+        var user = User.Create(name, LoginIdentifierRules.FromEmailLocalPart(normalizedEmail), passwordHasher.Hash(password), gymId, normalizedEmail);
         await userRepository.AddAsync(user);
 
         if (trainerRole is not null &&
@@ -306,7 +337,7 @@ public static class DemoDataSeeder
             throw new InvalidOperationException($"Demo member email {email} already exists outside demo seed scope.");
         }
 
-        var user = User.Create(name, normalizedEmail, passwordHasher.Hash(password), gymId);
+        var user = User.Create(name, LoginIdentifierRules.FromEmailLocalPart(normalizedEmail), passwordHasher.Hash(password), gymId, normalizedEmail);
         await userRepository.AddAsync(user);
 
         var memberRole = await roleRepository.GetByNameAsync("Member");

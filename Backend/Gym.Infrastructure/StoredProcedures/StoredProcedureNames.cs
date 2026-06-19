@@ -9,7 +9,9 @@ public static class StoredProcedureNames
     // Auth / User
     public const string LoginUser = "dbo.sp_LoginUser";
     public const string UserExistsByEmail = "dbo.sp_User_ExistsByEmail";
+    public const string UserExistsByLoginIdentifier = "dbo.sp_User_ExistsByLoginIdentifier";
     public const string GetUserByEmail = "dbo.sp_User_GetByEmail";
+    public const string GetUserByLoginIdentifier = "dbo.sp_User_GetByLoginIdentifier";
     public const string GetUserById = "dbo.sp_User_GetById";
     public const string CreateUser = "dbo.sp_User_Insert";
     public const string UserAnyExists = "dbo.sp_User_AnyExists";
@@ -175,6 +177,7 @@ public static class StoredProcedureNames
 
     // Diet plans
     public const string GetDietCategories = "dbo.sp_GetDietCategories";
+    public const string SeedDietCategories = "dbo.sp_SeedDietCategories";
     public const string CreateDietCategory = "dbo.sp_CreateDietCategory";
     public const string GetDietPlans = "dbo.sp_GetDietPlans";
     public const string GetDietPlanById = "dbo.sp_GetDietPlanById";
@@ -191,6 +194,8 @@ public static class StoredProcedureNames
 
     // Workout plans
     public const string GetExerciseCategories = "dbo.sp_GetExerciseCategories";
+    public const string SeedExerciseCategories = "dbo.sp_SeedExerciseCategories";
+    public const string SeedExerciseLibrary = "dbo.sp_SeedExerciseLibrary";
     public const string CreateExerciseCategory = "dbo.sp_CreateExerciseCategory";
     public const string GetExerciseLibrary = "dbo.sp_GetExerciseLibrary";
     public const string GetExerciseById = "dbo.sp_GetExerciseById";
@@ -388,6 +393,7 @@ public static class StoredProcedureNames
     public const string GetMembersForDietPushReminder = "dbo.sp_GetMembersForDietPushReminder";
     public const string GetMembersForGoalPushReminder = "dbo.sp_GetMembersForGoalPushReminder";
     public const string GetMobilePushRecipientUserIds = "dbo.sp_GetMobilePushRecipientUserIds";
+    public const string GetMobilePushCampaignRecipients = "dbo.sp_GetMobilePushCampaignRecipients";
 
     // AI Trainer Recommendations
     public const string CreateAiRecommendation = "dbo.sp_CreateAiRecommendation";
@@ -474,4 +480,13 @@ public static class StoredProcedureNames
     public const string UpsertWhiteLabelMobileSettings = "dbo.sp_UpsertWhiteLabelMobileSettings";
     public const string GetWhiteLabelMobileSettings = "dbo.sp_GetWhiteLabelMobileSettings";
     public const string GetWhiteLabelPlatformDashboard = "dbo.sp_GetWhiteLabelPlatformDashboard";
+
+    // Tenant menus
+    public const string MenuGetAll = "dbo.sp_Menu_GetAll";
+    public const string GymMenuGetEnabledCodes = "dbo.sp_GymMenu_GetEnabledCodes";
+    public const string GymMenuIsEnabled = "dbo.sp_GymMenu_IsEnabled";
+    public const string GymMenuGetByGymId = "dbo.sp_GymMenu_GetByGymId";
+    public const string GymMenuSetEnabled = "dbo.sp_GymMenu_SetEnabled";
+    public const string GymMenuBulkSetEnabled = "dbo.sp_GymMenu_BulkSetEnabled";
+    public const string GymMenuSeedForGym = "dbo.sp_GymMenu_SeedForGym";
 }

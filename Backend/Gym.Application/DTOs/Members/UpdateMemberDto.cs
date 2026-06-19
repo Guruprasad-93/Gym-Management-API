@@ -3,6 +3,7 @@ namespace Gym.Application.DTOs.Members;
 public class UpdateMemberDto
 {
     public string? FullName { get; set; }
+    public string? LoginIdentifier { get; set; }
     public string? Email { get; set; }
     public int? TrainerId { get; set; }
     public DateOnly? DateOfBirth { get; set; }

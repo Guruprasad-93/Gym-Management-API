@@ -37,7 +37,8 @@ public class UserRole : BaseEntity
         int id,
         Guid userId,
         string userName,
-        string userEmail,
+        string userLoginIdentifier,
+        string? userEmail,
         int roleId,
         string roleName,
         DateTime createdAt,
@@ -49,7 +50,7 @@ public class UserRole : BaseEntity
             RoleId = roleId,
             CreatedAt = createdAt,
             UpdatedAt = updatedAt,
-            User = User.Hydrate(userId, userName, userEmail, string.Empty, null, createdAt),
+            User = User.Hydrate(userId, userName, userLoginIdentifier, userEmail, string.Empty, null, createdAt),
             Role = Role.Hydrate(roleId, roleName, null, false, createdAt, createdAt, null)
         };
 }

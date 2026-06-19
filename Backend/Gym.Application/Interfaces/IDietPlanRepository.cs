@@ -4,6 +4,7 @@ namespace Gym.Application.Interfaces;
 
 public interface IDietPlanRepository
 {
+    Task SeedCategoriesAsync(Guid gymId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DietCategoryDto>> GetCategoriesAsync(Guid gymId, bool includeInactive, CancellationToken cancellationToken = default);
     Task<DietCategoryDto> CreateCategoryAsync(Guid gymId, CreateDietCategoryDto dto, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DietPlanListDto>> GetPlansAsync(Guid? gymId, bool includeInactive, int? categoryId, string? search, CancellationToken cancellationToken = default);

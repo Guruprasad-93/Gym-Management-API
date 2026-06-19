@@ -39,8 +39,14 @@ public class GymAdminService : IGymAdminService
         _ = await _gymRepository.GetByIdAsync(gymId, cancellationToken)
             ?? throw new KeyNotFoundException("Gym not found.");
 
-        var email = dto.Email.Trim().ToLowerInvariant();
-        if (await _userRepository.ExistsByEmailAsync(email, cancellationToken))
+        var loginIdentifier = Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
+        Validation.LoginIdentifierRules.Validate(loginIdentifier);
+        var email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email.Trim().ToLowerInvariant();
+
+        if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, gymId, cancellationToken))
+            throw new InvalidOperationException("A user with this login identifier already exists.");
+
+        if (!string.IsNullOrWhiteSpace(email) && await _userRepository.ExistsByEmailAsync(email, cancellationToken))
             throw new InvalidOperationException("A user with this email already exists.");
 
         string? temporaryPassword = null;
@@ -69,6 +75,7 @@ public class GymAdminService : IGymAdminService
             userId,
             gymId,
             dto.Name.Trim(),
+            loginIdentifier,
             email,
             _passwordHasher.Hash(plainPassword),
             mustChangePassword,
@@ -113,10 +120,29 @@ public class GymAdminService : IGymAdminService
         _ = await _gymRepository.GetByIdAsync(gymId, cancellationToken)
             ?? throw new KeyNotFoundException("Gym not found.");
 
+        var loginIdentifier = Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
+        Validation.LoginIdentifierRules.Validate(loginIdentifier);
+        var email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email.Trim().ToLowerInvariant();
+
+        if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, gymId, cancellationToken))
+        {
+            var conflict = await _userRepository.GetByLoginIdentifierAsync(loginIdentifier, gymId, cancellationToken);
+            if (conflict is not null && conflict.Id != userId)
+                throw new InvalidOperationException("A user with this login identifier already exists.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(email) && await _userRepository.ExistsByEmailAsync(email, cancellationToken))
+        {
+            var emailUser = await _userRepository.GetByEmailAsync(email, cancellationToken);
+            if (emailUser is not null && emailUser.Id != userId)
+                throw new InvalidOperationException("A user with this email already exists.");
+        }
+
         var updateDto = new UpdateGymAdminDto
         {
-            Name = dto.Name,
-            Email = dto.Email,
+            Name = dto.Name.Trim(),
+            LoginIdentifier = loginIdentifier,
+            Email = email,
             GymId = gymId
         };
 

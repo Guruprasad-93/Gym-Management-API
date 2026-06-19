@@ -1,5 +1,5 @@
 using System.Net.Http.Json;
-using Gym.API.IntegrationTests.Infrastructure;
+using Gym.Infrastructure.Persistence;
 
 namespace Gym.API.IntegrationTests.Infrastructure;
 
@@ -7,16 +7,26 @@ public static class AuthenticatedClientHelper
 {
     public static async Task<HttpClient> CreateAuthenticatedClientAsync(
         HttpClient client,
-        string email,
-        string password)
+        string loginIdentifier,
+        string password,
+        Guid? gymId = null)
     {
         var csrfResponse = await client.GetAsync("/api/auth/csrf");
         csrfResponse.EnsureSuccessStatusCode();
         var csrf = CookieHelper.GetSetCookieValue(csrfResponse, "XSRF-TOKEN");
 
+        var resolvedLoginIdentifier = loginIdentifier.Contains('@', StringComparison.Ordinal)
+            ? Gym.Application.Validation.LoginIdentifierRules.FromEmailLocalPart(loginIdentifier)
+            : loginIdentifier;
+
         var loginRequest = new HttpRequestMessage(HttpMethod.Post, "/api/auth/login")
         {
-            Content = JsonContent.Create(new { email, password })
+            Content = JsonContent.Create(new
+            {
+                loginIdentifier = resolvedLoginIdentifier,
+                gymId = gymId ?? DemoDataSeeder.DemoGymId,
+                password
+            })
         };
         if (!string.IsNullOrEmpty(csrf))
             loginRequest.Headers.Add("X-XSRF-TOKEN", csrf);

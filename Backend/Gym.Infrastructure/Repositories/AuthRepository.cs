@@ -12,11 +12,11 @@ public class AuthRepository : IAuthRepository
 
     public AuthRepository(IStoredProcedureExecutor sp) => _sp = sp;
 
-    public async Task<LoginUserResult?> LoginUserAsync(string email, CancellationToken cancellationToken = default)
+    public async Task<LoginUserResult?> LoginUserAsync(string loginIdentifier, Guid? gymId, CancellationToken cancellationToken = default)
     {
         var row = await _sp.QuerySingleOrDefaultAsync<LoginUserRow>(
             StoredProcedureNames.LoginUser,
-            new { Email = email.Trim().ToLowerInvariant() },
+            new { LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(), GymId = gymId },
             cancellationToken);
 
         if (row is null) return null;
@@ -25,7 +25,8 @@ public class AuthRepository : IAuthRepository
         {
             UserId = row.UserId,
             FullName = row.FullName,
-            Email = row.Email,
+            LoginIdentifier = row.LoginIdentifier,
+            Email = row.Email ?? string.Empty,
             PasswordHash = row.Password,
             GymId = row.GymId,
             UserIsActive = row.UserIsActive,
@@ -65,17 +66,17 @@ public class AuthRepository : IAuthRepository
             new { UserId = userId, PasswordHash = passwordHash },
             cancellationToken);
 
-    public Task SetPasswordResetTokenAsync(string email, string resetToken, DateTime expiresAt, CancellationToken cancellationToken = default) =>
+    public Task SetPasswordResetTokenAsync(string loginIdentifier, Guid? gymId, string resetToken, DateTime expiresAt, CancellationToken cancellationToken = default) =>
         _sp.ExecuteAsync(
             StoredProcedureNames.SetPasswordResetToken,
-            new { Email = email, ResetToken = resetToken, ExpiresAt = expiresAt },
+            new { LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(), GymId = gymId, ResetToken = resetToken, ExpiresAt = expiresAt },
             cancellationToken);
 
-    public async Task<bool> ResetPasswordAsync(string email, string resetToken, string passwordHash, CancellationToken cancellationToken = default)
+    public async Task<bool> ResetPasswordAsync(string loginIdentifier, Guid? gymId, string resetToken, string passwordHash, CancellationToken cancellationToken = default)
     {
         var rows = await _sp.QuerySingleOrDefaultAsync<int>(
             StoredProcedureNames.ResetUserPassword,
-            new { Email = email, ResetToken = resetToken, PasswordHash = passwordHash },
+            new { LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(), GymId = gymId, ResetToken = resetToken, PasswordHash = passwordHash },
             cancellationToken);
 
         return rows > 0;
@@ -194,7 +195,8 @@ internal sealed class LoginUserRow
 {
     public Guid UserId { get; set; }
     public string FullName { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
+    public string? Email { get; set; }
+    public string LoginIdentifier { get; set; } = string.Empty;
     public string Password { get; set; } = string.Empty;
     public Guid? GymId { get; set; }
     public bool UserIsActive { get; set; }

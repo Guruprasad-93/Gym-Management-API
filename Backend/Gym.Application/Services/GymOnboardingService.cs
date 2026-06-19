@@ -17,6 +17,10 @@ public class GymOnboardingService : IGymOnboardingService
     private readonly IGymAdminRepository _gymAdminRepository;
     private readonly IUserRepository _userRepository;
     private readonly ISaasSubscriptionRepository _saasRepository;
+    private readonly IExpenseRepository _expenseRepository;
+    private readonly IDietPlanRepository _dietPlanRepository;
+    private readonly IWorkoutPlanRepository _workoutPlanRepository;
+    private readonly IGymMenuService _gymMenuService;
     private readonly INotificationService _notificationService;
     private readonly IPasswordHasher _passwordHasher;
     private readonly SaasSubscriptionSettings _settings;
@@ -26,6 +30,10 @@ public class GymOnboardingService : IGymOnboardingService
         IGymAdminRepository gymAdminRepository,
         IUserRepository userRepository,
         ISaasSubscriptionRepository saasRepository,
+        IExpenseRepository expenseRepository,
+        IDietPlanRepository dietPlanRepository,
+        IWorkoutPlanRepository workoutPlanRepository,
+        IGymMenuService gymMenuService,
         INotificationService notificationService,
         IPasswordHasher passwordHasher,
         IOptions<SaasSubscriptionSettings> settings)
@@ -34,6 +42,10 @@ public class GymOnboardingService : IGymOnboardingService
         _gymAdminRepository = gymAdminRepository;
         _userRepository = userRepository;
         _saasRepository = saasRepository;
+        _expenseRepository = expenseRepository;
+        _dietPlanRepository = dietPlanRepository;
+        _workoutPlanRepository = workoutPlanRepository;
+        _gymMenuService = gymMenuService;
         _notificationService = notificationService;
         _passwordHasher = passwordHasher;
         _settings = settings.Value;
@@ -44,8 +56,14 @@ public class GymOnboardingService : IGymOnboardingService
         if (!_settings.AllowPublicRegistration)
             throw new InvalidOperationException("Public gym registration is disabled.");
 
-        var email = dto.Email.Trim().ToLowerInvariant();
-        if (await _userRepository.ExistsByEmailAsync(email, cancellationToken))
+        var loginIdentifier = Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
+        Validation.LoginIdentifierRules.Validate(loginIdentifier);
+        var email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email.Trim().ToLowerInvariant();
+
+        if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, null, cancellationToken))
+            throw new InvalidOperationException("A user with this login identifier already exists.");
+
+        if (!string.IsNullOrWhiteSpace(email) && await _userRepository.ExistsByEmailAsync(email, cancellationToken))
             throw new InvalidOperationException("A user with this email already exists.");
 
         var gymId = Guid.NewGuid();
@@ -66,11 +84,16 @@ public class GymOnboardingService : IGymOnboardingService
 
         var userId = Guid.NewGuid();
         await _gymAdminRepository.CreateAsync(
-            userId, gymId, dto.OwnerName.Trim(), email,
+            userId, gymId, dto.OwnerName.Trim(), loginIdentifier, email,
             _passwordHasher.Hash(plainPassword), temporaryPassword is not null, cancellationToken);
 
         await _saasRepository.CreateTrialSubscriptionAsync(gymId, _settings.GracePeriodDays, cancellationToken);
         await _saasRepository.SeedNotificationSettingsAsync(gymId, cancellationToken);
+        await _expenseRepository.SeedCategoriesAsync(gymId, cancellationToken);
+        await _dietPlanRepository.SeedCategoriesAsync(gymId, cancellationToken);
+        await _workoutPlanRepository.SeedExerciseCategoriesAsync(gymId, cancellationToken);
+        await _workoutPlanRepository.SeedExerciseLibraryAsync(gymId, cancellationToken);
+        await _gymMenuService.SeedMenusForGymAsync(gymId, userId, cancellationToken);
 
         var subscription = await _saasRepository.GetGymSubscriptionAsync(gymId, cancellationToken);
 
@@ -98,6 +121,7 @@ public class GymOnboardingService : IGymOnboardingService
             GymId = gymId,
             AdminUserId = userId,
             GymName = dto.GymName.Trim(),
+            AdminLoginIdentifier = loginIdentifier,
             AdminEmail = email,
             TemporaryPassword = temporaryPassword,
             RemainingTrialDays = subscription?.RemainingTrialDays ?? _settings.TrialDays,

@@ -7,5 +7,6 @@ public interface ICurrentUserService
     bool IsAuthenticated { get; }
     bool HasPermission(string permission);
     bool HasRole(string role);
+    IReadOnlyList<string> Permissions { get; }
     Guid RequireGymId();
 }

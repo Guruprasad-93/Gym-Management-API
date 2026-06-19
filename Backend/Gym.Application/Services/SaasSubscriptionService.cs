@@ -10,20 +10,35 @@ namespace Gym.Application.Services;
 public class TenantLimitService : ITenantLimitService
 {
     private readonly ISaasSubscriptionRepository _repository;
+    private readonly SaasSubscriptionSettings _settings;
 
-    public TenantLimitService(ISaasSubscriptionRepository repository) => _repository = repository;
+    public TenantLimitService(
+        ISaasSubscriptionRepository repository,
+        IOptions<SaasSubscriptionSettings> saasSettings)
+    {
+        _repository = repository;
+        _settings = saasSettings.Value;
+    }
 
     public async Task EnsureHasAccessAsync(Guid gymId, CancellationToken cancellationToken = default)
     {
-        var check = await _repository.CheckTenantLimitAsync(gymId, "Member", cancellationToken);
-        if (!check.HasAccess)
-            throw new InvalidOperationException("Your subscription has expired. Please upgrade your plan to continue.");
+        var check = await ResolveAccessCheckAsync(gymId, "Member", cancellationToken);
+        if (check.HasAccess)
+            return;
+
+        if (string.IsNullOrWhiteSpace(check.PlanName))
+            throw new InvalidOperationException("No active subscription found for this gym. Please subscribe to a plan to continue.");
+
+        throw new InvalidOperationException("Your subscription has expired. Please upgrade your plan to continue.");
     }
 
     public async Task EnsureCanAddMemberAsync(Guid gymId, CancellationToken cancellationToken = default)
     {
-        await EnsureHasAccessAsync(gymId, cancellationToken);
-        var check = await _repository.CheckTenantLimitAsync(gymId, "Member", cancellationToken);
+        var check = await ResolveAccessCheckAsync(gymId, "Member", cancellationToken);
+        if (!check.HasAccess)
+            await EnsureHasAccessAsync(gymId, cancellationToken);
+
+        check = await _repository.CheckTenantLimitAsync(gymId, "Member", cancellationToken);
         if (check.MemberLimitReached)
             throw new InvalidOperationException(
                 $"Member limit reached for {check.PlanName} plan ({check.CurrentMembers}/{check.MaxMembers}). Please upgrade your subscription.");
@@ -31,11 +46,27 @@ public class TenantLimitService : ITenantLimitService
 
     public async Task EnsureCanAddTrainerAsync(Guid gymId, CancellationToken cancellationToken = default)
     {
-        await EnsureHasAccessAsync(gymId, cancellationToken);
-        var check = await _repository.CheckTenantLimitAsync(gymId, "Trainer", cancellationToken);
+        var check = await ResolveAccessCheckAsync(gymId, "Trainer", cancellationToken);
+        if (!check.HasAccess)
+            await EnsureHasAccessAsync(gymId, cancellationToken);
+
+        check = await _repository.CheckTenantLimitAsync(gymId, "Trainer", cancellationToken);
         if (check.TrainerLimitReached)
             throw new InvalidOperationException(
                 $"Trainer limit reached for {check.PlanName} plan ({check.CurrentTrainers}/{check.MaxTrainers}). Please upgrade your subscription.");
+    }
+
+    private async Task<TenantLimitCheckDto> ResolveAccessCheckAsync(
+        Guid gymId,
+        string resourceType,
+        CancellationToken cancellationToken)
+    {
+        var check = await _repository.CheckTenantLimitAsync(gymId, resourceType, cancellationToken);
+        if (check.HasAccess || !string.IsNullOrWhiteSpace(check.PlanName))
+            return check;
+
+        await _repository.CreateTrialSubscriptionAsync(gymId, _settings.GracePeriodDays, cancellationToken);
+        return await _repository.CheckTenantLimitAsync(gymId, resourceType, cancellationToken);
     }
 }
 

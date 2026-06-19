@@ -4,6 +4,7 @@ public static class FileCategories
 {
     public const string GymLogo = "GymLogo";
     public const string GymBanner = "GymBanner";
+    public const string WebsiteGallery = "WebsiteGallery";
     public const string MemberProfilePhoto = "MemberProfilePhoto";
     public const string TrainerProfilePhoto = "TrainerProfilePhoto";
     public const string MemberProgressPhoto = "MemberProgressPhoto";
@@ -12,11 +13,11 @@ public static class FileCategories
 
     public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     {
-        GymLogo, GymBanner, MemberProfilePhoto, TrainerProfilePhoto, MemberProgressPhoto, DietAttachment, WorkoutAttachment
+        GymLogo, GymBanner, WebsiteGallery, MemberProfilePhoto, TrainerProfilePhoto, MemberProgressPhoto, DietAttachment, WorkoutAttachment
     };
 
     public static bool IsImageCategory(string category) =>
-        category is MemberProfilePhoto or TrainerProfilePhoto or MemberProgressPhoto or GymLogo or GymBanner;
+        category is MemberProfilePhoto or TrainerProfilePhoto or MemberProgressPhoto or GymLogo or GymBanner or WebsiteGallery;
 
     public static bool AllowsDocuments(string category) =>
         category is DietAttachment or WorkoutAttachment;

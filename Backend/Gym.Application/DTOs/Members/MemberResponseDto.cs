@@ -6,6 +6,7 @@ public class MemberResponseDto
     public Guid GymId { get; set; }
     public Guid UserId { get; set; }
     public string FullName { get; set; } = string.Empty;
+    public string LoginIdentifier { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public int? TrainerId { get; set; }
     public string? TrainerName { get; set; }

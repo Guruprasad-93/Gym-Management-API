@@ -24,7 +24,12 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDt
             userAgent = ua.ToString();
 
         return _authService.LoginAsync(
-            new LoginRequestDto { Email = request.Email, Password = request.Password },
+            new LoginRequestDto
+            {
+                LoginIdentifier = request.LoginIdentifier,
+                Password = request.Password,
+                GymId = request.GymId
+            },
             userAgent,
             http?.Connection.RemoteIpAddress?.ToString(),
             cancellationToken);

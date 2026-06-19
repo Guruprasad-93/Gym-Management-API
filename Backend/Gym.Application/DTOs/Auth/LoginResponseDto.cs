@@ -15,5 +15,6 @@ public class LoginResponseDto
     public int TokenVersion { get; set; }
     public IReadOnlyList<string> Roles { get; set; } = Array.Empty<string>();
     public IReadOnlyList<string> Permissions { get; set; } = Array.Empty<string>();
+    public IReadOnlyList<string> EnabledMenuCodes { get; set; } = Array.Empty<string>();
     public bool MustChangePassword { get; set; }
 }

@@ -6,12 +6,14 @@ namespace Gym.Domain.Entities;
 public class User
 {
     public const int MaxNameLength = 100;
+    public const int MaxLoginIdentifierLength = 20;
     public const int MaxEmailLength = 256;
     public const int MaxPasswordLength = 500;
 
     public Guid Id { get; private set; }
     public string Name { get; private set; } = string.Empty;
-    public string Email { get; private set; } = string.Empty;
+    public string LoginIdentifier { get; private set; } = string.Empty;
+    public string? Email { get; private set; }
 
     /// <summary>
     /// Hashed password value. Plain text must never be persisted.
@@ -31,30 +33,34 @@ public class User
     {
     }
 
-    public static User Create(string name, string email, string passwordHash, Guid? gymId = null)
+    public static User Create(string name, string loginIdentifier, string passwordHash, Guid? gymId = null, string? email = null)
     {
         ValidateName(name);
-        ValidateEmail(email);
+        ValidateLoginIdentifier(loginIdentifier);
         ValidatePassword(passwordHash);
+        ValidateOptionalEmail(email);
 
         return new User
         {
             Id = Guid.NewGuid(),
             Name = name.Trim(),
-            Email = email.Trim().ToLowerInvariant(),
+            LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(),
+            Email = NormalizeOptionalEmail(email),
             Password = passwordHash,
             GymId = gymId,
             CreatedDate = DateTime.UtcNow
         };
     }
 
-    public void UpdateProfile(string name, string email)
+    public void UpdateProfile(string name, string loginIdentifier, string? email)
     {
         ValidateName(name);
-        ValidateEmail(email);
+        ValidateLoginIdentifier(loginIdentifier);
+        ValidateOptionalEmail(email);
 
         Name = name.Trim();
-        Email = email.Trim().ToLowerInvariant();
+        LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant();
+        Email = NormalizeOptionalEmail(email);
     }
 
     public void ChangePassword(string passwordHash)
@@ -72,7 +78,8 @@ public class User
     public static User Hydrate(
         Guid id,
         string name,
-        string email,
+        string loginIdentifier,
+        string? email,
         string password,
         Guid? gymId,
         DateTime createdDate,
@@ -84,6 +91,7 @@ public class User
         {
             Id = id,
             Name = name,
+            LoginIdentifier = loginIdentifier,
             Email = email,
             Password = password,
             GymId = gymId,
@@ -103,16 +111,33 @@ public class User
             throw new ArgumentException($"Name cannot exceed {MaxNameLength} characters.", nameof(name));
     }
 
-    private static void ValidateEmail(string email)
+    private static void ValidateLoginIdentifier(string loginIdentifier)
+    {
+        if (string.IsNullOrWhiteSpace(loginIdentifier))
+            throw new ArgumentException("Login identifier is required.", nameof(loginIdentifier));
+
+        if (loginIdentifier.Trim().Length > MaxLoginIdentifierLength)
+            throw new ArgumentException($"Login identifier cannot exceed {MaxLoginIdentifierLength} characters.", nameof(loginIdentifier));
+    }
+
+    private static void ValidateOptionalEmail(string? email)
     {
         if (string.IsNullOrWhiteSpace(email))
-            throw new ArgumentException("Email is required.", nameof(email));
+            return;
 
         if (email.Length > MaxEmailLength)
             throw new ArgumentException($"Email cannot exceed {MaxEmailLength} characters.", nameof(email));
 
         if (!email.Contains('@'))
             throw new ArgumentException("Email format is invalid.", nameof(email));
+    }
+
+    private static string? NormalizeOptionalEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return null;
+
+        return email.Trim().ToLowerInvariant();
     }
 
     private static void ValidatePassword(string passwordHash)

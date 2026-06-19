@@ -46,6 +46,7 @@ internal static class DtoMapper
             GymId = row.GymId,
             UserId = row.UserId,
             FullName = string.IsNullOrEmpty(row.FullName) ? row.UserName ?? string.Empty : row.FullName,
+            LoginIdentifier = row.LoginIdentifier,
             Email = string.IsNullOrEmpty(row.Email) ? row.UserEmail ?? string.Empty : row.Email,
             TrainerId = row.TrainerId,
             TrainerName = row.TrainerName,

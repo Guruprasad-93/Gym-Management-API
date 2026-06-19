@@ -27,6 +27,7 @@ public interface IWhiteLabelService
     Task DisableAsync(CancellationToken cancellationToken = default);
     Task UpdateDomainAsync(UpdateWhiteLabelDomainDto dto, CancellationToken cancellationToken = default);
     Task<WhiteLabelLoginBrandingDto?> GetLoginBrandingAsync(WhiteLabelLoginBrandingQueryDto query, CancellationToken cancellationToken = default);
+    Task<WhiteLabelLoginBrandingDto> GetAppBrandingAsync(CancellationToken cancellationToken = default);
     Task<WhiteLabelPreviewDto> GetPreviewAsync(CancellationToken cancellationToken = default);
     Task ApplyWebsiteBrandingDefaultsAsync(Guid gymId, WhiteLabelWebsitePreviewDto target, CancellationToken cancellationToken = default);
     Task ApplyWebsiteSettingsDefaultsAsync(Guid gymId, Gym.Application.DTOs.Website.GymWebsiteSettingsDto settings, CancellationToken cancellationToken = default);

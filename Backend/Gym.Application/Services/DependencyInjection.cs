@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<IBookingService, BookingService>();
         services.AddScoped<IWebsiteService, WebsiteService>();
         services.AddScoped<IWhiteLabelService, WhiteLabelService>();
+        services.AddScoped<IGymMenuService, GymMenuService>();
 
         return services;
     }

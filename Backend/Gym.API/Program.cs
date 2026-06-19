@@ -56,6 +56,7 @@ app.UseCors("Frontend");
 app.UseMiddleware<CsrfValidationMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<GymMenuAccessMiddleware>();
 
 app.MapHealthChecks("/health", new HealthCheckOptions
 {

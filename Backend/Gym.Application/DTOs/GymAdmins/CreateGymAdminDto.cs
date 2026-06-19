@@ -4,7 +4,8 @@ public class CreateGymAdminDto
 {
     public Guid GymId { get; set; }
     public string Name { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
+    public string LoginIdentifier { get; set; } = string.Empty;
+    public string? Email { get; set; }
 
     /// <summary>Optional. When empty and <see cref="GenerateTemporaryPassword"/> is true, a temporary password is generated.</summary>
     public string? Password { get; set; }

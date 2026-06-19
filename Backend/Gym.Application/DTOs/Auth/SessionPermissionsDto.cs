@@ -9,5 +9,6 @@ public class SessionPermissionsDto
     public string? GymName { get; set; }
     public IReadOnlyList<string> Roles { get; set; } = Array.Empty<string>();
     public IReadOnlyList<string> Permissions { get; set; } = Array.Empty<string>();
+    public IReadOnlyList<string> EnabledMenuCodes { get; set; } = Array.Empty<string>();
     public DateTime RefreshedAt { get; set; }
 }

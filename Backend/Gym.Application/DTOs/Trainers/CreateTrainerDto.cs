@@ -10,6 +10,8 @@ public class CreateTrainerDto
     /// <summary>Required when <see cref="UserId"/> is not set – creates linked user with Trainer role.</summary>
     public string? Name { get; set; }
 
+    public string? LoginIdentifier { get; set; }
+
     public string? Email { get; set; }
 
     public string? Password { get; set; }

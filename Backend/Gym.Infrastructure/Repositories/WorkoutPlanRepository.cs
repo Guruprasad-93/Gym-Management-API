@@ -21,6 +21,12 @@ public class WorkoutPlanRepository : IWorkoutPlanRepository
         _connectionFactory = connectionFactory;
     }
 
+    public Task SeedExerciseCategoriesAsync(Guid gymId, CancellationToken cancellationToken = default) =>
+        _sp.ExecuteAsync(StoredProcedureNames.SeedExerciseCategories, new { GymId = gymId }, cancellationToken);
+
+    public Task SeedExerciseLibraryAsync(Guid gymId, CancellationToken cancellationToken = default) =>
+        _sp.ExecuteAsync(StoredProcedureNames.SeedExerciseLibrary, new { GymId = gymId }, cancellationToken);
+
     public async Task<IReadOnlyList<ExerciseCategoryDto>> GetCategoriesAsync(
         Guid gymId, bool includeInactive, CancellationToken cancellationToken = default) =>
         (await _sp.QueryAsync<ExerciseCategoryDto>(StoredProcedureNames.GetExerciseCategories,

@@ -209,6 +209,7 @@ public class SendPushCampaignDto
     public string Message { get; set; } = string.Empty;
     public string? TargetAudience { get; set; }
     public int? BranchId { get; set; }
+    public int ExpiringWithinDays { get; set; } = 30;
     public IReadOnlyList<Guid>? UserIds { get; set; }
 }
 

@@ -1,19 +1,51 @@
 using Gym.Application.DTOs.Gyms;
 using Gym.Application.Interfaces;
+using Gym.Application.Options;
 using Gym.Domain.Entities;
+using Microsoft.Extensions.Options;
 
 namespace Gym.Application.Services;
 
 public class GymService : IGymService
 {
     private readonly IGymRepository _gymRepository;
+    private readonly ISaasSubscriptionRepository _saasRepository;
+    private readonly IExpenseRepository _expenseRepository;
+    private readonly IDietPlanRepository _dietPlanRepository;
+    private readonly IWorkoutPlanRepository _workoutPlanRepository;
+    private readonly IGymMenuService _gymMenuService;
+    private readonly SaasSubscriptionSettings _saasSettings;
 
-    public GymService(IGymRepository gymRepository) => _gymRepository = gymRepository;
+    public GymService(
+        IGymRepository gymRepository,
+        ISaasSubscriptionRepository saasRepository,
+        IExpenseRepository expenseRepository,
+        IDietPlanRepository dietPlanRepository,
+        IWorkoutPlanRepository workoutPlanRepository,
+        IGymMenuService gymMenuService,
+        IOptions<SaasSubscriptionSettings> saasSettings)
+    {
+        _gymRepository = gymRepository;
+        _saasRepository = saasRepository;
+        _expenseRepository = expenseRepository;
+        _dietPlanRepository = dietPlanRepository;
+        _workoutPlanRepository = workoutPlanRepository;
+        _gymMenuService = gymMenuService;
+        _saasSettings = saasSettings.Value;
+    }
 
     public async Task<GymDto> CreateAsync(CreateGymDto dto, CancellationToken cancellationToken = default)
     {
         var gym = Gym.Domain.Entities.Gym.Create(dto.Name, dto.Address, dto.Phone, dto.Email);
-        return await _gymRepository.CreateAsync(gym.Id, dto, cancellationToken);
+        var created = await _gymRepository.CreateAsync(gym.Id, dto, cancellationToken);
+        if (await _saasRepository.GetGymSubscriptionAsync(gym.Id, cancellationToken) is null)
+            await _saasRepository.CreateTrialSubscriptionAsync(gym.Id, _saasSettings.GracePeriodDays, cancellationToken);
+        await _expenseRepository.SeedCategoriesAsync(gym.Id, cancellationToken);
+        await _dietPlanRepository.SeedCategoriesAsync(gym.Id, cancellationToken);
+        await _workoutPlanRepository.SeedExerciseCategoriesAsync(gym.Id, cancellationToken);
+        await _workoutPlanRepository.SeedExerciseLibraryAsync(gym.Id, cancellationToken);
+        await _gymMenuService.SeedMenusForGymAsync(gym.Id, null, cancellationToken);
+        return created;
     }
 
     public Task<GymDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>

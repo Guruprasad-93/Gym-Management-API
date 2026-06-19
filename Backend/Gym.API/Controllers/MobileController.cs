@@ -109,7 +109,7 @@ public class MobileAdminController : ControllerBase
     public async Task<ActionResult<ApiResponse<object>>> SendCampaign([FromBody] SendPushCampaignDto dto, CancellationToken cancellationToken)
     {
         await _mobilePushService.SendCampaignAsync(dto, cancellationToken);
-        return Ok(ApiResponse<object>.Ok(null!, "Push campaign queued."));
+        return Ok(ApiResponse<object>.Ok(null!, "Push campaign queued for delivery."));
     }
 
     [HttpGet("analytics")]

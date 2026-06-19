@@ -159,6 +159,9 @@ public static class Permissions
     public const string ViewWebsiteAnalytics = "VIEW_WEBSITE_ANALYTICS";
     public const string ViewWhiteLabel = "VIEW_WHITE_LABEL";
     public const string ManageWhiteLabel = "MANAGE_WHITE_LABEL";
+
+    public const string ViewTenantMenus = "VIEW_TENANT_MENUS";
+    public const string ManageTenantMenus = "MANAGE_TENANT_MENUS";
 }
 
 

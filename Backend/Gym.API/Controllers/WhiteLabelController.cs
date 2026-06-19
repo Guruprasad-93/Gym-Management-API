@@ -107,6 +107,11 @@ public class WhiteLabelController : ControllerBase
     [RequirePermission(Permissions.ViewWhiteLabel)]
     public async Task<ActionResult<ApiResponse<WhiteLabelPreviewDto>>> GetPreview(CancellationToken cancellationToken) =>
         Ok(ApiResponse<WhiteLabelPreviewDto>.Ok(await _whiteLabelService.GetPreviewAsync(cancellationToken)));
+
+    /// <summary>Branding for authenticated gym portals (admin, trainer, member). Same source as preview login.</summary>
+    [HttpGet("app-branding")]
+    public async Task<ActionResult<ApiResponse<WhiteLabelLoginBrandingDto>>> GetAppBranding(CancellationToken cancellationToken) =>
+        Ok(ApiResponse<WhiteLabelLoginBrandingDto>.Ok(await _whiteLabelService.GetAppBrandingAsync(cancellationToken)));
 }
 
 [ApiController]

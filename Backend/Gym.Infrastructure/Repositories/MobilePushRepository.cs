@@ -324,6 +324,30 @@ public class MobilePushRepository : IMobilePushRepository
         return rows.Select(r => r.UserId).ToList();
     }
 
+    public async Task<IReadOnlyList<Guid>> GetCampaignRecipientUserIdsAsync(
+        Guid gymId,
+        string targetAudience,
+        int? branchId,
+        int expiringWithinDays,
+        IReadOnlyList<Guid>? userIds,
+        CancellationToken cancellationToken = default)
+    {
+        var userIdsCsv = userIds is { Count: > 0 }
+            ? string.Join(',', userIds)
+            : null;
+
+        var rows = await _sp.QueryAsync<UserIdRow>(StoredProcedureNames.GetMobilePushCampaignRecipients, new
+        {
+            GymId = gymId,
+            TargetAudience = targetAudience,
+            BranchId = branchId,
+            ExpiringWithinDays = expiringWithinDays,
+            UserIdsCsv = userIdsCsv
+        }, cancellationToken);
+
+        return rows.Select(r => r.UserId).ToList();
+    }
+
     private async Task<IReadOnlyList<MemberPushCandidateRow>> QueryCandidates(string spName, CancellationToken cancellationToken)
     {
         var rows = await _sp.QueryAsync<MemberPushCandidateRow>(spName, cancellationToken: cancellationToken);

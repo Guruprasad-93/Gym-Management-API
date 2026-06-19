@@ -1,4 +1,5 @@
 using Gym.Application.Interfaces;
+using Gym.Application.Validation;
 using Gym.Domain.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -37,10 +38,16 @@ public static class DatabaseSeeder
                 var superAdminRoleEntity = await roleRepository.GetByNameAsync("SuperAdmin")
                     ?? throw new InvalidOperationException("SuperAdmin role was not seeded.");
 
+                var loginIdentifier = LoginIdentifierRules.FromEmailLocalPart(email);
+                if (string.IsNullOrWhiteSpace(loginIdentifier))
+                    loginIdentifier = "superadmin";
+
                 var user = User.Create(
                     "Super Admin",
-                    email,
-                    passwordHasher.Hash(bootstrapPassword));
+                    loginIdentifier,
+                    passwordHasher.Hash(bootstrapPassword),
+                    gymId: null,
+                    email: email);
 
                 await userRepository.AddAsync(user);
                 await userRoleRepository.AddAsync(UserRole.Create(user.Id, superAdminRoleEntity.Id));
@@ -50,6 +57,7 @@ public static class DatabaseSeeder
         }
 
         await DemoDataSeeder.SeedAsync(serviceProvider);
+        await GymSubscriptionSeeder.EnsureAllGymsHaveAccessAsync(serviceProvider);
     }
 
     private static async Task EnsureCoreAuthorizationSeedAsync(
@@ -450,5 +458,7 @@ public static class DatabaseSeeder
         yield return ("VIEW_WEBSITE_ANALYTICS", "Website", "View website lead analytics and exports");
         yield return ("VIEW_WHITE_LABEL", "WhiteLabel", "View white label branding and domain settings");
         yield return ("MANAGE_WHITE_LABEL", "WhiteLabel", "Manage white label branding, domains, and templates");
+        yield return ("VIEW_TENANT_MENUS", "Platform", "View tenant menu assignments per gym");
+        yield return ("MANAGE_TENANT_MENUS", "Platform", "Enable or disable menus per gym tenant");
     }
 }

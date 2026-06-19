@@ -108,6 +108,7 @@ public static class DependencyInjection
         services.AddScoped<IWebsiteRepository, WebsiteRepository>();
         services.AddScoped<IWebsiteReportExporter, WebsiteReportExporter>();
         services.AddScoped<IWhiteLabelRepository, WhiteLabelRepository>();
+        services.AddScoped<IGymMenuRepository, GymMenuRepository>();
         services.AddHostedService<BackgroundJobs.BookingReminderBackgroundJob>();
         services.AddScoped<IQrCodeGenerator, QrCodeGeneratorService>();
         services.AddScoped<IFileValidator, FileValidator>();

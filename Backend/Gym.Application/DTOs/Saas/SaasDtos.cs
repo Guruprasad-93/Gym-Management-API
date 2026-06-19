@@ -65,7 +65,8 @@ public class RegisterGymDto
     public string GymName { get; set; } = string.Empty;
     public string OwnerName { get; set; } = string.Empty;
     public string Mobile { get; set; } = string.Empty;
-    public string Email { get; set; } = string.Empty;
+    public string LoginIdentifier { get; set; } = string.Empty;
+    public string? Email { get; set; }
     public string? Address { get; set; }
     public string? Password { get; set; }
 }
@@ -75,7 +76,8 @@ public class RegisterGymResultDto
     public Guid GymId { get; set; }
     public Guid AdminUserId { get; set; }
     public string GymName { get; set; } = string.Empty;
-    public string AdminEmail { get; set; } = string.Empty;
+    public string AdminLoginIdentifier { get; set; } = string.Empty;
+    public string? AdminEmail { get; set; }
     public string? TemporaryPassword { get; set; }
     public int RemainingTrialDays { get; set; }
     public string Message { get; set; } = string.Empty;

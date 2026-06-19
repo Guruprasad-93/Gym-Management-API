@@ -2,12 +2,12 @@ namespace Gym.Application.Interfaces;
 
 public interface IAuthRepository
 {
-    Task<Models.LoginUserResult?> LoginUserAsync(string email, CancellationToken cancellationToken = default);
+    Task<Models.LoginUserResult?> LoginUserAsync(string loginIdentifier, Guid? gymId, CancellationToken cancellationToken = default);
 
     Task<Models.UserLoginContext?> GetLoginContextAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<int> ChangePasswordAsync(Guid userId, string passwordHash, CancellationToken cancellationToken = default);
-    Task SetPasswordResetTokenAsync(string email, string resetToken, DateTime expiresAt, CancellationToken cancellationToken = default);
-    Task<bool> ResetPasswordAsync(string email, string resetToken, string passwordHash, CancellationToken cancellationToken = default);
+    Task SetPasswordResetTokenAsync(string loginIdentifier, Guid? gymId, string resetToken, DateTime expiresAt, CancellationToken cancellationToken = default);
+    Task<bool> ResetPasswordAsync(string loginIdentifier, Guid? gymId, string resetToken, string passwordHash, CancellationToken cancellationToken = default);
     Task<int> IncrementTokenVersionAsync(Guid userId, CancellationToken cancellationToken = default);
     Task EndAllSessionsForUserAsync(Guid userId, CancellationToken cancellationToken = default);
     Task<Guid> CreateSessionAsync(Guid userId, Guid sessionGuid, string? deviceInfo, string? ipAddress, CancellationToken cancellationToken = default);

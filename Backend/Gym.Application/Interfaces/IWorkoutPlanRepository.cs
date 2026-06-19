@@ -4,6 +4,8 @@ namespace Gym.Application.Interfaces;
 
 public interface IWorkoutPlanRepository
 {
+    Task SeedExerciseCategoriesAsync(Guid gymId, CancellationToken cancellationToken = default);
+    Task SeedExerciseLibraryAsync(Guid gymId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ExerciseCategoryDto>> GetCategoriesAsync(Guid gymId, bool includeInactive, CancellationToken cancellationToken = default);
     Task<ExerciseCategoryDto> CreateCategoryAsync(Guid gymId, CreateExerciseCategoryDto dto, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<ExerciseDto>> GetExercisesAsync(Guid? gymId, bool includeInactive, int? categoryId, string? muscleGroup, string? search, CancellationToken cancellationToken = default);

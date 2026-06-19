@@ -1,5 +1,6 @@
 using Gym.Application.DTOs.Users;
 using Gym.Application.Interfaces;
+using Gym.Application.Validation;
 using Gym.Domain.Constants;
 using Gym.Domain.Entities;
 
@@ -27,14 +28,19 @@ public class UserService : IUserService
     {
         EnsureCanRegisterUsers();
 
-        var email = dto.Email.Trim().ToLowerInvariant();
+        var loginIdentifier = LoginIdentifierRules.Normalize(dto.LoginIdentifier);
+        LoginIdentifierRules.Validate(loginIdentifier);
+        var email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email.Trim().ToLowerInvariant();
         var gymId = ResolveGymIdForRegistration(dto.GymId);
 
-        if (await _userRepository.ExistsByEmailAsync(email, cancellationToken))
+        if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, gymId, cancellationToken))
+            throw new InvalidOperationException("A user with this login identifier already exists.");
+
+        if (!string.IsNullOrWhiteSpace(email) && await _userRepository.ExistsByEmailAsync(email, cancellationToken))
             throw new InvalidOperationException("A user with this email already exists.");
 
         var passwordHash = _passwordHasher.Hash(dto.Password);
-        var user = User.Create(dto.Name.Trim(), email, passwordHash, gymId);
+        var user = User.Create(dto.Name.Trim(), loginIdentifier, passwordHash, gymId, email);
 
         await _userRepository.AddAsync(user, cancellationToken);
 
@@ -66,7 +72,8 @@ public class UserService : IUserService
         {
             Id = user.Id,
             Name = user.Name,
-            Email = user.Email,
+            LoginIdentifier = user.LoginIdentifier,
+            Email = user.Email ?? string.Empty,
             GymId = user.GymId,
             CreatedDate = user.CreatedDate
         };
