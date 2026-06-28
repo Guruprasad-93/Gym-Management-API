@@ -96,7 +96,29 @@ public class AttendanceController : ControllerBase
         CancellationToken cancellationToken)
     {
         var result = await _attendanceService.CheckOutAsync(dto, cancellationToken);
-        return Ok(ApiResponse<MemberAttendanceDto>.Ok(result, "Member checked out."));
+        var message = dto.IsManualCheckout ? "Member manually checked out." : "Member checked out.";
+        return Ok(ApiResponse<MemberAttendanceDto>.Ok(result, message));
+    }
+
+    /// <summary>Gym attendance settings (hours, auto checkout).</summary>
+    [HttpGet("settings")]
+    [RequirePermission(Permissions.ManageAttendance)]
+    [ProducesResponseType(typeof(ApiResponse<AttendanceSettingsDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<AttendanceSettingsDto>>> GetSettings(CancellationToken cancellationToken)
+    {
+        var settings = await _attendanceService.GetSettingsAsync(cancellationToken);
+        return Ok(ApiResponse<AttendanceSettingsDto>.Ok(settings));
+    }
+
+    /// <summary>Update gym attendance settings.</summary>
+    [HttpPut("settings")]
+    [RequirePermission(Permissions.ManageAttendance)]
+    public async Task<ActionResult<ApiResponse<object>>> UpdateSettings(
+        [FromBody] UpdateAttendanceSettingsDto dto,
+        CancellationToken cancellationToken)
+    {
+        await _attendanceService.UpdateSettingsAsync(dto, cancellationToken);
+        return Ok(ApiResponse<object>.Ok(null!, "Attendance settings updated."));
     }
 
     /// <summary>Manually mark attendance (Present/Absent/Late/Excused).</summary>
@@ -115,11 +137,24 @@ public class AttendanceController : ControllerBase
     [RequirePermission(Permissions.ViewAttendance)]
     public async Task<ActionResult<ApiResponse<DailyAttendanceReportDto>>> DailyReport(
         [FromQuery] DateOnly? date,
-        CancellationToken cancellationToken)
+        [FromQuery] bool openOnly = false,
+        [FromQuery] string? checkoutTypeFilter = null,
+        CancellationToken cancellationToken = default)
     {
         var reportDate = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var report = await _attendanceService.GetDailyReportAsync(reportDate, cancellationToken);
+        var report = await _attendanceService.GetDailyReportAsync(reportDate, openOnly, checkoutTypeFilter, cancellationToken);
         return Ok(ApiResponse<DailyAttendanceReportDto>.Ok(report));
+    }
+
+    /// <summary>Monthly attendance summary per member.</summary>
+    [HttpGet("reports/forgot-check-out")]
+    [RequirePermission(Permissions.ViewAttendance)]
+    public async Task<ActionResult<ApiResponse<PagedResultDto<ForgotCheckOutReportItemDto>>>> ForgotCheckOutReport(
+        [FromQuery] ForgotCheckOutReportQueryDto query,
+        CancellationToken cancellationToken)
+    {
+        var result = await _attendanceService.GetForgotCheckOutReportAsync(query, cancellationToken);
+        return Ok(ApiResponse<PagedResultDto<ForgotCheckOutReportItemDto>>.Ok(result));
     }
 
     /// <summary>Monthly attendance summary per member.</summary>
@@ -139,10 +174,14 @@ public class AttendanceController : ControllerBase
     /// <summary>Export daily report as PDF.</summary>
     [HttpGet("reports/daily/export/pdf")]
     [RequirePermission(Permissions.ExportAttendanceReports)]
-    public async Task<IActionResult> ExportDailyPdf([FromQuery] DateOnly? date, CancellationToken cancellationToken)
+    public async Task<IActionResult> ExportDailyPdf(
+        [FromQuery] DateOnly? date,
+        [FromQuery] bool openOnly = false,
+        [FromQuery] string? checkoutTypeFilter = null,
+        CancellationToken cancellationToken = default)
     {
         var reportDate = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var report = await _attendanceService.GetDailyReportAsync(reportDate, cancellationToken);
+        var report = await _attendanceService.GetDailyReportAsync(reportDate, openOnly, checkoutTypeFilter, cancellationToken);
         var bytes = _reportExporter.ExportDailyReportPdf(report);
         return File(bytes, "application/pdf", $"daily-attendance-{reportDate:yyyy-MM-dd}.pdf");
     }
@@ -150,10 +189,14 @@ public class AttendanceController : ControllerBase
     /// <summary>Export daily report as Excel.</summary>
     [HttpGet("reports/daily/export/excel")]
     [RequirePermission(Permissions.ExportAttendanceReports)]
-    public async Task<IActionResult> ExportDailyExcel([FromQuery] DateOnly? date, CancellationToken cancellationToken)
+    public async Task<IActionResult> ExportDailyExcel(
+        [FromQuery] DateOnly? date,
+        [FromQuery] bool openOnly = false,
+        [FromQuery] string? checkoutTypeFilter = null,
+        CancellationToken cancellationToken = default)
     {
         var reportDate = date ?? DateOnly.FromDateTime(DateTime.UtcNow);
-        var report = await _attendanceService.GetDailyReportAsync(reportDate, cancellationToken);
+        var report = await _attendanceService.GetDailyReportAsync(reportDate, openOnly, checkoutTypeFilter, cancellationToken);
         var bytes = _reportExporter.ExportDailyReportExcel(report);
         return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             $"daily-attendance-{reportDate:yyyy-MM-dd}.xlsx");

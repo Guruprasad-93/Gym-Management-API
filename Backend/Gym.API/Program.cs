@@ -20,7 +20,7 @@ if (args.Contains("migrate", StringComparer.OrdinalIgnoreCase))
 var builder = WebApplication.CreateBuilder(args);
 builder.AddSerilogLogging();
 builder.AddEnvironmentConfiguration();
-builder.Services.AddApiServices(builder.Configuration);
+builder.Services.AddApiServices(builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 app.ValidateProductionConfiguration();
@@ -56,6 +56,8 @@ app.UseCors("Frontend");
 app.UseMiddleware<CsrfValidationMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<SubscriptionAccessMiddleware>();
+app.UseMiddleware<FeatureAccessMiddleware>();
 app.UseMiddleware<GymMenuAccessMiddleware>();
 
 app.MapHealthChecks("/health", new HealthCheckOptions

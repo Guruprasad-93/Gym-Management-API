@@ -7,4 +7,5 @@ public class SaasSubscriptionSettings
     public int TrialDays { get; set; } = 15;
     public int GracePeriodDays { get; set; } = 3;
     public bool AllowPublicRegistration { get; set; } = true;
+    public string PlatformProductName { get; set; } = "Gym Management";
 }

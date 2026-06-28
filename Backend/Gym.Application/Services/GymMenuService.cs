@@ -9,15 +9,18 @@ public class GymMenuService : IGymMenuService
 {
     private readonly IGymMenuRepository _menuRepository;
     private readonly IGymRepository _gymRepository;
+    private readonly IFeatureResolverService _featureResolver;
     private readonly ICurrentUserService _currentUser;
 
     public GymMenuService(
         IGymMenuRepository menuRepository,
         IGymRepository gymRepository,
+        IFeatureResolverService featureResolver,
         ICurrentUserService currentUser)
     {
         _menuRepository = menuRepository;
         _gymRepository = gymRepository;
+        _featureResolver = featureResolver;
         _currentUser = currentUser;
     }
 
@@ -34,13 +37,14 @@ public class GymMenuService : IGymMenuService
             };
         }
 
-        var enabledCodes = await _menuRepository.GetEnabledMenuCodesAsync(gymId.Value, cancellationToken);
-        var enabledSet = enabledCodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var visibleCodes = await _featureResolver.GetVisibleMenuCodesAsync(gymId.Value, cancellationToken);
+        var visibleSet = visibleCodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
         var permissions = _currentUser.Permissions;
+        var accessibleCodes = await _featureResolver.GetAccessibleMenuCodesAsync(gymId.Value, permissions, cancellationToken);
 
         var gymMenus = await _menuRepository.GetGymMenusAsync(gymId.Value, cancellationToken);
         var visible = gymMenus
-            .Where(m => m.IsEnabled && enabledSet.Contains(m.MenuCode))
+            .Where(m => m.IsEnabled && visibleSet.Contains(m.MenuCode))
             .Where(m => MenuPermissionMap.UserCanSeeMenu(m.MenuCode, permissions))
             .Select(m => new MenuDto
             {
@@ -57,12 +61,12 @@ public class GymMenuService : IGymMenuService
             })
             .ToList();
 
-        visible = IncludeVisibleParents(visible, gymMenus.Where(m => m.IsEnabled).ToList());
+        visible = IncludeVisibleParents(visible, gymMenus.Where(m => m.IsEnabled && visibleSet.Contains(m.MenuCode)).ToList());
 
         return new MyMenusResponseDto
         {
             Menus = visible.OrderBy(m => m.SortOrder).ThenBy(m => m.MenuName).ToList(),
-            EnabledMenuCodes = enabledCodes
+            EnabledMenuCodes = accessibleCodes
         };
     }
 
@@ -81,13 +85,13 @@ public class GymMenuService : IGymMenuService
         var summaries = new List<GymMenuSummaryDto>();
         foreach (var gym in gyms)
         {
-            var gymMenus = await _menuRepository.GetGymMenusAsync(gym.Id, cancellationToken);
+            var visibleCodes = await _featureResolver.GetVisibleMenuCodesAsync(gym.Id, cancellationToken);
             summaries.Add(new GymMenuSummaryDto
             {
                 GymId = gym.Id,
                 GymName = gym.Name,
                 TotalMenus = totalMenus,
-                EnabledMenus = gymMenus.Count(m => m.IsEnabled)
+                EnabledMenus = visibleCodes.Count
             });
         }
 
@@ -111,10 +115,8 @@ public class GymMenuService : IGymMenuService
         InvalidateCache(gymId);
     }
 
-    public async Task<bool> IsMenuEnabledAsync(Guid gymId, string menuCode, CancellationToken cancellationToken = default)
-    {
-        return await _menuRepository.IsMenuEnabledAsync(gymId, menuCode, cancellationToken);
-    }
+    public Task<bool> IsMenuEnabledAsync(Guid gymId, string menuCode, CancellationToken cancellationToken = default) =>
+        _featureResolver.IsMenuVisibleAsync(gymId, menuCode, cancellationToken);
 
     public Task SeedMenusForGymAsync(Guid gymId, Guid? enabledBy, CancellationToken cancellationToken = default) =>
         _menuRepository.SeedMenusForGymAsync(gymId, enabledBy, cancellationToken);

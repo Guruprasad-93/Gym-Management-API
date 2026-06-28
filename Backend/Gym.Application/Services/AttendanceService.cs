@@ -45,11 +45,34 @@ public class AttendanceService : IAttendanceService
     public async Task<MemberAttendanceDto> CheckOutAsync(CheckOutMemberDto dto, CancellationToken cancellationToken = default)
     {
         var gymId = await ResolveGymIdForMemberAsync(dto.MemberId, cancellationToken);
+        var checkoutType = dto.IsManualCheckout
+            ? AttendanceCheckoutTypes.Manual
+            : AttendanceCheckoutTypes.Normal;
         var result = await _attendanceRepository.CheckOutMemberAsync(
-            gymId, dto.MemberId, _currentUser.UserId, dto.Notes, cancellationToken);
-        await LogAttendanceAsync(gymId, AuditEntityNames.MemberAttendance, result.MemberAttendanceId.ToString(), AuditActionTypes.CheckOut, result, cancellationToken);
+            gymId,
+            dto.MemberId,
+            dto.MemberAttendanceId,
+            checkoutType,
+            _currentUser.UserId,
+            dto.Notes,
+            cancellationToken);
+        var actionType = dto.IsManualCheckout ? AuditActionTypes.ManualCheckOut : AuditActionTypes.CheckOut;
+        await LogAttendanceAsync(gymId, AuditEntityNames.MemberAttendance, result.MemberAttendanceId.ToString(), actionType, result, cancellationToken);
         return result;
     }
+
+    public async Task<AttendanceSettingsDto> GetSettingsAsync(CancellationToken cancellationToken = default) =>
+        await _attendanceRepository.GetSettingsAsync(ResolveGymScope(), cancellationToken);
+
+    public async Task UpdateSettingsAsync(UpdateAttendanceSettingsDto dto, CancellationToken cancellationToken = default)
+    {
+        var gymId = ResolveGymScope();
+        await _attendanceRepository.UpdateSettingsAsync(gymId, dto, cancellationToken);
+        await LogAttendanceAsync(gymId, AuditEntityNames.MemberAttendance, gymId.ToString(), AuditActionTypes.Update, dto, cancellationToken);
+    }
+
+    public Task<int> RunAutoCheckoutProcessingAsync(CancellationToken cancellationToken = default) =>
+        _attendanceRepository.ProcessAutoCheckoutAsync(cancellationToken);
 
     public async Task<MemberAttendanceDto> MarkAsync(MarkAttendanceDto dto, CancellationToken cancellationToken = default)
     {
@@ -79,9 +102,16 @@ public class AttendanceService : IAttendanceService
         await _attendanceRepository.GetDashboardAsync(
             ResolveGymScope(), await ResolveTrainerFilterAsync(cancellationToken), cancellationToken);
 
-    public async Task<DailyAttendanceReportDto> GetDailyReportAsync(DateOnly date, CancellationToken cancellationToken = default) =>
+    public Task<PagedResultDto<ForgotCheckOutReportItemDto>> GetForgotCheckOutReportAsync(
+        ForgotCheckOutReportQueryDto query, CancellationToken cancellationToken = default) =>
+        _attendanceRepository.GetForgotCheckOutReportAsync(
+            ResolveGymScope(), query, cancellationToken);
+
+    public async Task<DailyAttendanceReportDto> GetDailyReportAsync(
+        DateOnly date, bool openOnly = false, string? checkoutTypeFilter = null,
+        CancellationToken cancellationToken = default) =>
         await _attendanceRepository.GetDailyReportAsync(
-            ResolveGymScope(), await ResolveTrainerFilterAsync(cancellationToken), date, cancellationToken);
+            ResolveGymScope(), await ResolveTrainerFilterAsync(cancellationToken), date, openOnly, checkoutTypeFilter, cancellationToken);
 
     public async Task<MonthlyAttendanceReportDto> GetMonthlyReportAsync(int year, int month, CancellationToken cancellationToken = default) =>
         await _attendanceRepository.GetMonthlyReportAsync(

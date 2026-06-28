@@ -195,6 +195,17 @@ public class MobilePushService : IMobilePushService
             }, cancellationToken);
         }
 
+        foreach (var c in await _repository.GetCheckoutReminderCandidatesAsync(cancellationToken))
+        {
+            await SendEventPushAsync(c.GymId, new SendEventPushRequest
+            {
+                UserId = c.UserId,
+                NotificationType = PushNotificationTypes.CheckoutReminder,
+                Title = "Check-Out Reminder",
+                Message = $"Hi {c.MemberName}, the gym is closing soon. Please check out before you leave."
+            }, cancellationToken);
+        }
+
         foreach (var c in await _repository.GetWorkoutReminderCandidatesAsync(cancellationToken))
         {
             await SendEventPushAsync(c.GymId, new SendEventPushRequest

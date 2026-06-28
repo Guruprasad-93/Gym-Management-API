@@ -56,6 +56,8 @@ public static class AuditActionTypes
     public const string Logout = "Logout";
     public const string CheckIn = "CheckIn";
     public const string CheckOut = "CheckOut";
+    public const string ManualCheckOut = "ManualCheckOut";
+    public const string AutoCheckOut = "AutoCheckOut";
     public const string Mark = "Mark";
     public const string Renew = "Renew";
     public const string Cancel = "Cancel";

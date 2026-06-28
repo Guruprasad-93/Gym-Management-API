@@ -29,13 +29,13 @@ public class GymOnboardingController : ControllerBase
 
     [HttpGet("plans")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<SaasPlanDto>>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<IReadOnlyList<SaasPlanDto>>>> GetPlans(
-        [FromServices] ISaasSubscriptionService subscriptionService,
+    [ProducesResponseType(typeof(ApiResponse<SaasPlanCatalogDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<SaasPlanCatalogDto>>> GetPlans(
+        [FromServices] IPlanManagementService planManagementService,
         CancellationToken cancellationToken)
     {
-        var plans = await subscriptionService.GetPlansAsync(cancellationToken);
-        return Ok(ApiResponse<IReadOnlyList<SaasPlanDto>>.Ok(plans));
+        var catalog = await planManagementService.GetPlanCatalogAsync(cancellationToken);
+        return Ok(ApiResponse<SaasPlanCatalogDto>.Ok(catalog));
     }
 }
 
@@ -77,6 +77,27 @@ public class SaasSubscriptionsController : ControllerBase
     {
         var plans = await _subscriptionService.GetPlansAsync(cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<SaasPlanDto>>.Ok(plans));
+    }
+
+    [HttpGet("plans/catalog")]
+    [RequirePermission(Permissions.ViewSaasSubscription)]
+    public async Task<ActionResult<ApiResponse<SaasPlanCatalogDto>>> GetPlanCatalog(
+        [FromServices] IPlanManagementService planManagementService,
+        CancellationToken cancellationToken)
+    {
+        var catalog = await planManagementService.GetPlanCatalogAsync(cancellationToken);
+        return Ok(ApiResponse<SaasPlanCatalogDto>.Ok(catalog));
+    }
+
+    [HttpGet("my-features")]
+    [RequirePermission(Permissions.ViewSaasSubscription)]
+    public async Task<ActionResult<ApiResponse<GymFeaturesDto>>> GetMyFeatures(
+        [FromServices] IPlanManagementService planManagementService,
+        [FromQuery] Guid? gymId,
+        CancellationToken cancellationToken)
+    {
+        var features = await planManagementService.GetMyFeaturesAsync(gymId, cancellationToken);
+        return Ok(ApiResponse<GymFeaturesDto>.Ok(features));
     }
 
     [HttpPost("payments/order")]

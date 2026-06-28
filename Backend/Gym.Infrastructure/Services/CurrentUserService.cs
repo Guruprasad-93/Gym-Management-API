@@ -35,6 +35,11 @@ public class CurrentUserService : ICurrentUserService
             ? Array.Empty<string>()
             : User.FindAll(AuthClaimTypes.Permission).Select(c => c.Value).ToList();
 
+    public IReadOnlyList<string> Roles =>
+        User is null
+            ? Array.Empty<string>()
+            : User.FindAll(AuthClaimTypes.Role).Select(c => c.Value).ToList();
+
     public Guid RequireGymId() =>
         GymId ?? throw new UnauthorizedAccessException("Gym context is required for this operation.");
 }

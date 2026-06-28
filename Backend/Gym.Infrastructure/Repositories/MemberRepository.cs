@@ -108,7 +108,7 @@ public class MemberRepository : IMemberRepository
             dto.FullName,
             LoginIdentifier = string.IsNullOrWhiteSpace(dto.LoginIdentifier)
                 ? null
-                : dto.LoginIdentifier.Trim().ToLowerInvariant(),
+                : dto.LoginIdentifier.Trim(),
             Email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email.Trim().ToLowerInvariant(),
             dto.TrainerId,
             dto.DateOfBirth,

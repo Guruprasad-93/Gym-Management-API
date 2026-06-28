@@ -24,6 +24,7 @@ public interface IMobilePushRepository
     Task<PagedResultDto<PushCampaignHistoryDto>> GetCampaignHistoryAsync(Guid gymId, int pageNumber, int pageSize, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MembershipPushCandidateRow>> GetMembershipsExpiringForPushAsync(int daysUntilExpiry, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MemberPushCandidateRow>> GetAttendanceReminderCandidatesAsync(CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<MemberPushCandidateRow>> GetCheckoutReminderCandidatesAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MemberPushCandidateRow>> GetWorkoutReminderCandidatesAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<MemberPushCandidateRow>> GetDietReminderCandidatesAsync(CancellationToken cancellationToken = default);
     Task<IReadOnlyList<GoalPushCandidateRow>> GetGoalReminderCandidatesAsync(CancellationToken cancellationToken = default);

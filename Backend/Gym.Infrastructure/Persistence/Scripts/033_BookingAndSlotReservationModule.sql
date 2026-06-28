@@ -235,7 +235,24 @@ CREATE OR ALTER PROCEDURE dbo.sp_DeleteClassSchedule
 AS
 BEGIN
     SET NOCOUNT ON;
-    UPDATE dbo.ClassSchedules SET Status = N'Cancelled' WHERE Id = @Id AND GymId = @GymId;
+    SET XACT_ABORT ON;
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        IF NOT EXISTS (SELECT 1 FROM dbo.ClassSchedules WHERE Id = @Id AND GymId = @GymId)
+            THROW 50404, 'Class schedule not found.', 1;
+
+        DELETE FROM dbo.BookingWaitlist WHERE GymId = @GymId AND ClassScheduleId = @Id;
+        DELETE FROM dbo.SlotBookings WHERE GymId = @GymId AND ClassScheduleId = @Id;
+        DELETE FROM dbo.ClassSchedules WHERE Id = @Id AND GymId = @GymId;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
 END
 GO
 
@@ -469,8 +486,8 @@ BEGIN
 
     IF NOT EXISTS (SELECT 1 FROM dbo.MemberAttendance WHERE GymId = @GymId AND MemberId = @MemberId AND AttendanceDate = CAST(SYSUTCDATETIME() AS DATE))
     BEGIN
-        INSERT INTO dbo.MemberAttendance (GymId, MemberId, AttendanceDate, CheckInAt, MarkedByUserId)
-        VALUES (@GymId, @MemberId, CAST(SYSUTCDATETIME() AS DATE), SYSUTCDATETIME(), @MarkedByUserId);
+        INSERT INTO dbo.MemberAttendance (GymId, MemberId, AttendanceStatusId, AttendanceDate, CheckInAt, Notes, MarkedByUserId, CreatedAt)
+        VALUES (@GymId, @MemberId, 1, CAST(SYSUTCDATETIME() AS DATE), SYSUTCDATETIME(), N'Booking QR check-in', @MarkedByUserId, SYSUTCDATETIME());
     END
 END
 GO

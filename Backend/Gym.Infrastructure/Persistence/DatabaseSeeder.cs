@@ -1,5 +1,4 @@
 using Gym.Application.Interfaces;
-using Gym.Application.Validation;
 using Gym.Domain.Entities;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -38,10 +37,7 @@ public static class DatabaseSeeder
                 var superAdminRoleEntity = await roleRepository.GetByNameAsync("SuperAdmin")
                     ?? throw new InvalidOperationException("SuperAdmin role was not seeded.");
 
-                var loginIdentifier = LoginIdentifierRules.FromEmailLocalPart(email);
-                if (string.IsNullOrWhiteSpace(loginIdentifier))
-                    loginIdentifier = "superadmin";
-
+                var loginIdentifier = "superadmin";
                 var user = User.Create(
                     "Super Admin",
                     loginIdentifier,
@@ -184,7 +180,8 @@ public static class DatabaseSeeder
             "VIEW_BOOKINGS", "MANAGE_BOOKINGS" })
             await EnsureTrainerHasPrivilegeAsync(roleRepository, privilegeRepository, rolePrivilegeRepository, name, logger);
 
-        foreach (var name in new[] { "ASSIGN_MEMBER_TO_TRAINER", "ASSIGN_TRAINER", "VIEW_MEMBER_DETAILS", "UPDATE_MEMBERSHIP", "RENEW_MEMBERSHIP", "VIEW_REVENUE", "DOWNLOAD_INVOICE",
+        foreach (var name in new[] { "VIEW_SAAS_SUBSCRIPTION", "MANAGE_SAAS_SUBSCRIPTION", "MANAGE_GYM_BRANDING",
+            "ASSIGN_MEMBER_TO_TRAINER", "ASSIGN_TRAINER", "VIEW_MEMBER_DETAILS", "UPDATE_MEMBERSHIP", "RENEW_MEMBERSHIP", "VIEW_REVENUE", "DOWNLOAD_INVOICE",
             "VIEW_LEADS", "MANAGE_LEADS", "CONVERT_LEADS", "VIEW_LEAD_ANALYTICS",
             "VIEW_EXPENSES", "MANAGE_EXPENSES", "VIEW_PAYROLL", "MANAGE_PAYROLL", "VIEW_FINANCIAL_ANALYTICS",
             "VIEW_ATTENDANCE", "MANAGE_ATTENDANCE", "VIEW_TRAINER_ATTENDANCE", "MANAGE_TRAINER_ATTENDANCE", "EXPORT_ATTENDANCE_REPORTS",
@@ -396,6 +393,7 @@ public static class DatabaseSeeder
         yield return ("VIEW_SAAS_SUBSCRIPTION", "SaaS", "View gym subscription and usage");
         yield return ("MANAGE_SAAS_SUBSCRIPTION", "SaaS", "Upgrade, renew, or cancel subscription");
         yield return ("VIEW_PLATFORM_SAAS", "SaaS", "View platform SaaS metrics (MRR/ARR)");
+        yield return ("MANAGE_SUBSCRIPTION_PLANS", "SaaS", "Manage dynamic SaaS subscription plans");
         yield return ("MANAGE_GYM_BRANDING", "SaaS", "Manage gym branding and colors");
 
         yield return ("VIEW_LEADS", "CRM", "View leads and pipeline");

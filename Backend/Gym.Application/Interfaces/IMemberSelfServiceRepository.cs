@@ -76,7 +76,7 @@ public interface IMemberSelfService
     Task<IReadOnlyList<MemberFeedbackDto>> GetFeedbackAsync(CancellationToken cancellationToken = default);
 
     Task<MemberQrCodeDto> GetQrCodeAsync(CancellationToken cancellationToken = default);
-    Task<int> ScanQrCheckInAsync(QrCheckInDto dto, CancellationToken cancellationToken = default);
+    Task<QrScanResultDto> ScanQrCheckInAsync(QrCheckInDto dto, CancellationToken cancellationToken = default);
 
     Task<byte[]> ExportProgressPdfAsync(CancellationToken cancellationToken = default);
     Task<byte[]> ExportAttendancePdfAsync(CancellationToken cancellationToken = default);

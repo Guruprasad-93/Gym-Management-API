@@ -351,10 +351,15 @@ BEGIN
         Amount DECIMAL(18, 2) NOT NULL,
         ExpenseDate DATE NOT NULL,
         Description NVARCHAR(500) NULL,
+        IsDeleted BIT NOT NULL CONSTRAINT DF_Expenses_IsDeleted DEFAULT (0),
         CreatedAt DATETIME2 NOT NULL,
         CONSTRAINT FK_Expenses_Gyms FOREIGN KEY (GymId) REFERENCES dbo.Gyms (GymId) ON DELETE CASCADE
     );
 END
+GO
+
+IF OBJECT_ID(N'dbo.Expenses', N'U') IS NOT NULL AND COL_LENGTH('dbo.Expenses', 'IsDeleted') IS NULL
+    ALTER TABLE dbo.Expenses ADD IsDeleted BIT NOT NULL CONSTRAINT DF_Expenses_IsDeleted_004 DEFAULT (0) WITH VALUES;
 GO
 
 IF OBJECT_ID(N'dbo.RevenueReports', N'U') IS NULL

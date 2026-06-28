@@ -45,7 +45,10 @@ docker compose up --build
 | Role | Email | Password |
 |------|--------|----------|
 | Super Admin | `superadmin@gym.com` | `SuperAdmin@123` |
-| Gym Admin (demo) | `admin@fitzone-demo.com` | `Demo@123` |
+| Gym Admin (demo) | `admin` or `admin@fitzone-demo.com` | `Demo@123` |
+| Demo member (phone login) | `9876543210` | `Demo@123` |
+| Demo trainer (employee ID) | `EMP001` | `Demo@123` |
+| Demo member (member code) | `MEM000123` | `Demo@123` |
 
 ## Related documentation
 

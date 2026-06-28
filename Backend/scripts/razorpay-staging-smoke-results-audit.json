@@ -1,0 +1,68 @@
+[
+    {
+        "Id":  "PRE",
+        "Name":  "API health",
+        "Status":  "PASS",
+        "Detail":  null
+    },
+    {
+        "Id":  "PRE",
+        "Name":  "Gym admin login",
+        "Status":  "PASS",
+        "Detail":  "Session established"
+    },
+    {
+        "Id":  "S01",
+        "Name":  "New subscription purchase",
+        "Status":  "SKIP",
+        "Detail":  "Razorpay test keys not configured"
+    },
+    {
+        "Id":  "S02",
+        "Name":  "Plan upgrade",
+        "Status":  "SKIP",
+        "Detail":  "Razorpay test keys not configured"
+    },
+    {
+        "Id":  "S03",
+        "Name":  "Renewal before expiry",
+        "Status":  "SKIP",
+        "Detail":  "Razorpay test keys not configured"
+    },
+    {
+        "Id":  "S04",
+        "Name":  "Renewal during grace period",
+        "Status":  "SKIP",
+        "Detail":  "Razorpay test keys not configured"
+    },
+    {
+        "Id":  "S05",
+        "Name":  "Renewal after grace period",
+        "Status":  "SKIP",
+        "Detail":  "Razorpay test keys not configured"
+    },
+    {
+        "Id":  "S06",
+        "Name":  "Failed payment",
+        "Status":  "SKIP",
+        "Detail":  "Razorpay test keys not configured"
+    },
+    {
+        "Id":  "S07",
+        "Name":  "Cancelled payment",
+        "Status":  "SKIP",
+        "Detail":  "Razorpay test keys not configured"
+    },
+    {
+        "Id":  "S08",
+        "Name":  "Duplicate verification attempt",
+        "Status":  "SKIP",
+        "Detail":  "Razorpay test keys not configured"
+    },
+    {
+        "Id":  "S09",
+        "Name":  "Duplicate webhook callback",
+        "Status":  "SKIP",
+        "Detail":  "Razorpay test keys not configured"
+    }
+]

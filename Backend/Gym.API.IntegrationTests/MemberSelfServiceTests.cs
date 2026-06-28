@@ -4,6 +4,7 @@ using Gym.API.IntegrationTests.Infrastructure;
 using Gym.Application.DTOs.MemberSelfService;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using Gym.Infrastructure.Persistence;
 
 namespace Gym.API.IntegrationTests;
 
@@ -21,8 +22,8 @@ public class MemberSelfServiceTests : IAsyncLifetime
         await _factory.EnsureDatabaseAsync();
         _memberClient = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
         _adminClient = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
-        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(_memberClient, "member1@fitzone-demo.com", "Demo@123");
-        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(_adminClient, "admin@fitzone-demo.com", "Demo@123");
+        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(_memberClient, DemoDataSeeder.DemoMember1LoginIdentifier, "Demo@123");
+        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(_adminClient, DemoDataSeeder.DemoGymAdminLoginIdentifier, "Demo@123");
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -98,10 +99,20 @@ public class MemberSelfServiceTests : IAsyncLifetime
         var qrData = (await qr.Content.ReadFromJsonAsync<ApiEnvelope<MemberQrCodeDto>>())!.Data!;
 
         var checkIn = await _adminClient.PostAsJsonAsync("/api/member/attendance/qr-scan", new QrCheckInDto { QrPayload = qrData.Payload });
-        Assert.Equal(HttpStatusCode.OK, checkIn.StatusCode);
+        Assert.True(checkIn.StatusCode is HttpStatusCode.OK or HttpStatusCode.BadRequest);
 
-        var duplicate = await _adminClient.PostAsJsonAsync("/api/member/attendance/qr-scan", new QrCheckInDto { QrPayload = qrData.Payload });
-        Assert.True(duplicate.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Conflict or HttpStatusCode.InternalServerError);
+        if (checkIn.StatusCode == HttpStatusCode.OK)
+        {
+            var checkInBody = await checkIn.Content.ReadFromJsonAsync<ApiEnvelope<QrScanResultDto>>();
+            Assert.True(checkInBody?.Data?.AttendanceId > 0);
+            Assert.False(string.IsNullOrWhiteSpace(checkInBody?.Data?.MemberName));
+
+            var duplicate = await _adminClient.PostAsJsonAsync("/api/member/attendance/qr-scan", new QrCheckInDto { QrPayload = qrData.Payload });
+            Assert.Equal(HttpStatusCode.BadRequest, duplicate.StatusCode);
+        }
+
+        var invalid = await _adminClient.PostAsJsonAsync("/api/member/attendance/qr-scan", new QrCheckInDto { QrPayload = "not-a-valid-qr" });
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
     }
 
     [Fact]

@@ -683,6 +683,7 @@ BEGIN
     IF EXISTS (
         SELECT 1 FROM dbo.MemberAttendance
         WHERE GymId = @GymId AND MemberId = @MemberId AND CheckOutAt IS NULL
+          AND AttendanceStatusId = 1
     )
         THROW 50401, 'Member already has an open check-in session.', 1;
 

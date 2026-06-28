@@ -211,10 +211,10 @@ public class MemberSelfServiceController : ControllerBase
 
     [HttpPost("attendance/qr-scan")]
     [RequirePermission(Permissions.ManageAttendance)]
-    public async Task<ActionResult<ApiResponse<int>>> ScanQrCheckIn([FromBody] QrCheckInDto dto, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<QrScanResultDto>>> ScanQrCheckIn([FromBody] QrCheckInDto dto, CancellationToken cancellationToken)
     {
-        var attendanceId = await _memberSelfService.ScanQrCheckInAsync(dto, cancellationToken);
-        return Ok(ApiResponse<int>.Ok(attendanceId, "Member checked in via QR."));
+        var result = await _memberSelfService.ScanQrCheckInAsync(dto, cancellationToken);
+        return Ok(ApiResponse<QrScanResultDto>.Ok(result, "Member checked in via QR."));
     }
 
     [HttpGet("progress/export/pdf")]

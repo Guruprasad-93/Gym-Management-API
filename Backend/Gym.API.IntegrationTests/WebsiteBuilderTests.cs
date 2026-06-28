@@ -4,6 +4,7 @@ using Gym.API.IntegrationTests.Infrastructure;
 using Gym.Application.DTOs.Website;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using Gym.Infrastructure.Persistence;
 
 namespace Gym.API.IntegrationTests;
 
@@ -22,7 +23,7 @@ public class WebsiteBuilderTests : IAsyncLifetime
         await _factory.EnsureDatabaseAsync();
         _adminClient = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
         _anonClient = _factory.CreateClient();
-        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(_adminClient, "admin@fitzone-demo.com", "Demo@123");
+        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(_adminClient, DemoDataSeeder.DemoGymAdminLoginIdentifier, "Demo@123");
     }
 
     public Task DisposeAsync() => Task.CompletedTask;
@@ -71,6 +72,17 @@ public class WebsiteBuilderTests : IAsyncLifetime
         await _adminClient.PostAsync("/api/website/settings/unpublish", null);
         var response = await _anonClient.GetAsync($"/api/public/website/{slug}");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task UnpublishedWebsite_AdminPreview_ReturnsOk()
+    {
+        var slug = $"draft-{Guid.NewGuid():N}".Substring(0, 16);
+        await _adminClient.PutAsJsonAsync("/api/website/settings", new UpsertGymWebsiteSettingsDto { WebsiteSlug = slug, WebsiteTitle = "Draft Preview" });
+        await _adminClient.PostAsync("/api/website/settings/unpublish", null);
+
+        var response = await _adminClient.GetAsync($"/api/website/preview/{slug}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 
     [Fact]

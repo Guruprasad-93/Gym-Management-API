@@ -2,6 +2,7 @@ using System.Net;
 using Gym.API.IntegrationTests.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using Gym.Infrastructure.Persistence;
 
 namespace Gym.API.IntegrationTests;
 
@@ -23,7 +24,7 @@ public class TenantIsolationTests : IAsyncLifetime
     {
         await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(
             _gymAdminClient,
-            "admin@fitzone-demo.com",
+            DemoDataSeeder.DemoGymAdminLoginIdentifier,
             "Demo@123");
     }
 

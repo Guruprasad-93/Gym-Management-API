@@ -12,20 +12,21 @@ public static class RateLimitingExtensions
     {
         var settings = configuration.GetSection(RateLimitSettings.SectionName).Get<RateLimitSettings>() ?? new RateLimitSettings();
         var disableForTesting = configuration.GetValue<bool>("Testing:DisableRateLimiting");
-        var permitLimit = disableForTesting ? int.MaxValue : settings.AuthPermitLimit;
 
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
             options.AddPolicy(AuthPolicyName, httpContext =>
-                RateLimitPartition.GetFixedWindowLimiter(
-                    GetClientPartitionKey(httpContext),
-                    _ => new FixedWindowRateLimiterOptions
-                    {
-                        PermitLimit = permitLimit,
-                        Window = TimeSpan.FromSeconds(settings.AuthWindowSeconds),
-                        QueueLimit = 0
-                    }));
+                disableForTesting
+                    ? RateLimitPartition.GetNoLimiter(GetClientPartitionKey(httpContext))
+                    : RateLimitPartition.GetFixedWindowLimiter(
+                        GetClientPartitionKey(httpContext),
+                        _ => new FixedWindowRateLimiterOptions
+                        {
+                            PermitLimit = settings.AuthPermitLimit,
+                            Window = TimeSpan.FromSeconds(settings.AuthWindowSeconds),
+                            QueueLimit = 0
+                        }));
         });
 
         return services;

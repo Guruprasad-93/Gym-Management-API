@@ -96,6 +96,7 @@ BEGIN
         EmergencyContact NVARCHAR(200) NULL,
         JoinDate DATE NOT NULL,
         IsActive BIT NOT NULL CONSTRAINT DF_Members_IsActive DEFAULT (1),
+        IsDeleted BIT NOT NULL CONSTRAINT DF_Members_IsDeleted DEFAULT (0),
         CreatedAt DATETIME2 NOT NULL,
         UpdatedAt DATETIME2 NULL,
         CONSTRAINT FK_Members_Gyms FOREIGN KEY (GymId) REFERENCES dbo.Gyms (GymId) ON DELETE CASCADE,
@@ -105,6 +106,11 @@ BEGIN
     CREATE INDEX IX_Members_GymId ON dbo.Members (GymId);
     CREATE UNIQUE INDEX IX_Members_Gym_User ON dbo.Members (GymId, UserId);
 END
+GO
+
+/* Soft-delete column required by scripts 010+ (011 also adds this for legacy databases). */
+IF OBJECT_ID(N'dbo.Members', N'U') IS NOT NULL AND COL_LENGTH('dbo.Members', 'IsDeleted') IS NULL
+    ALTER TABLE dbo.Members ADD IsDeleted BIT NOT NULL CONSTRAINT DF_Members_IsDeleted DEFAULT (0) WITH VALUES;
 GO
 
 IF OBJECT_ID(N'dbo.Memberships', N'U') IS NULL

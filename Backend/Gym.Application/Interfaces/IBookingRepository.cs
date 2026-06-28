@@ -1,5 +1,6 @@
 using Gym.Application.DTOs.Booking;
 using Gym.Application.DTOs.Common;
+using Gym.Application.DTOs.MemberSelfService;
 
 namespace Gym.Application.Interfaces;
 
@@ -41,6 +42,7 @@ public interface IBookingService
     Task UpdateSettingsAsync(UpdateBookingSettingsDto dto, CancellationToken cancellationToken = default);
     Task<ClassScheduleDto> CreateScheduleAsync(CreateClassScheduleDto dto, CancellationToken cancellationToken = default);
     Task<ClassScheduleDto> UpdateScheduleAsync(UpdateClassScheduleDto dto, CancellationToken cancellationToken = default);
+    Task<ClassScheduleDto> GetScheduleByIdAsync(int id, CancellationToken cancellationToken = default);
     Task<PagedResultDto<ClassScheduleDto>> GetSchedulesAsync(ClassScheduleQueryDto query, CancellationToken cancellationToken = default);
     Task DeleteScheduleAsync(int id, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<AvailableSlotDto>> GetAvailableSlotsAsync(AvailableSlotsQueryDto query, CancellationToken cancellationToken = default);
@@ -48,7 +50,7 @@ public interface IBookingService
     Task CancelBookingAsync(CancelBookingDto dto, CancellationToken cancellationToken = default);
     Task JoinWaitlistAsync(JoinWaitlistDto dto, CancellationToken cancellationToken = default);
     Task<PagedResultDto<SlotBookingDto>> GetBookingsAsync(BookingQueryDto query, CancellationToken cancellationToken = default);
-    Task<int> CheckInAsync(BookingCheckInDto dto, CancellationToken cancellationToken = default);
+    Task<QrScanResultDto> CheckInAsync(BookingCheckInDto dto, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<TrainerScheduleDto>> GetTrainerScheduleAsync(TrainerScheduleQueryDto query, CancellationToken cancellationToken = default);
     Task<BookingAnalyticsDto> GetAnalyticsAsync(int? branchId, int days, CancellationToken cancellationToken = default);
     Task<byte[]> ExportAsync(string format, string reportType, BookingExportQueryDto query, CancellationToken cancellationToken = default);

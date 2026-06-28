@@ -24,8 +24,9 @@ public class AuthService : IAuthService
     private readonly JwtSettings _jwtSettings;
     private readonly PasswordResetSettings _passwordResetSettings;
     private readonly IHostEnvironment _hostEnvironment;
-    private readonly ISaasSubscriptionRepository _saasRepository;
-    private readonly IGymMenuRepository _gymMenuRepository;
+    private readonly ISubscriptionAccessService _subscriptionAccessService;
+    private readonly IFeatureResolverService _featureResolver;
+    private readonly SaasSubscriptionSettings _saasSettings;
 
     public AuthService(
         IUserRepository userRepository,
@@ -40,8 +41,9 @@ public class AuthService : IAuthService
         IOptions<JwtSettings> jwtSettings,
         IOptions<PasswordResetSettings> passwordResetSettings,
         IHostEnvironment hostEnvironment,
-        ISaasSubscriptionRepository saasRepository,
-        IGymMenuRepository gymMenuRepository)
+        ISubscriptionAccessService subscriptionAccessService,
+        IFeatureResolverService featureResolver,
+        IOptions<SaasSubscriptionSettings> saasSettings)
     {
         _userRepository = userRepository;
         _authRepository = authRepository;
@@ -55,8 +57,9 @@ public class AuthService : IAuthService
         _jwtSettings = jwtSettings.Value;
         _passwordResetSettings = passwordResetSettings.Value;
         _hostEnvironment = hostEnvironment;
-        _saasRepository = saasRepository;
-        _gymMenuRepository = gymMenuRepository;
+        _subscriptionAccessService = subscriptionAccessService;
+        _featureResolver = featureResolver;
+        _saasSettings = saasSettings.Value;
     }
 
     public async Task<LoginResponseDto> LoginAsync(
@@ -67,7 +70,7 @@ public class AuthService : IAuthService
     {
         var loginIdentifier = Gym.Application.Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
         Gym.Application.Validation.LoginIdentifierRules.Validate(loginIdentifier);
-        var loginUser = await _authRepository.LoginUserAsync(loginIdentifier, dto.GymId, cancellationToken)
+        var loginUser = await _authRepository.LoginUserAsync(loginIdentifier, cancellationToken)
             ?? throw new UnauthorizedAccessException("Invalid login identifier or password.");
 
         if (!loginUser.UserIsActive)
@@ -78,9 +81,6 @@ public class AuthService : IAuthService
 
         if (loginUser.GymId.HasValue && !loginUser.GymIsActive)
             throw new UnauthorizedAccessException("Your gym is inactive.");
-
-        if (loginUser.GymId.HasValue)
-            await EnsureSubscriptionAccessAsync(loginUser.GymId.Value, cancellationToken);
 
         await _authRepository.EndAllSessionsForUserAsync(loginUser.UserId, cancellationToken);
         await _authRepository.RevokeAllRefreshTokensForUserAsync(loginUser.UserId, cancellationToken);
@@ -172,7 +172,7 @@ public class AuthService : IAuthService
     {
         var loginIdentifier = Gym.Application.Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
         Gym.Application.Validation.LoginIdentifierRules.Validate(loginIdentifier);
-        var user = await _userRepository.GetByLoginIdentifierAsync(loginIdentifier, dto.GymId, cancellationToken);
+        var user = await _userRepository.GetByLoginIdentifierAsync(loginIdentifier, cancellationToken);
 
         if (user is null || !user.IsActive)
         {
@@ -186,15 +186,14 @@ public class AuthService : IAuthService
         var tokenHash = HashToken(resetToken);
         var expiresAt = DateTime.UtcNow.AddMinutes(_jwtSettings.PasswordResetTokenExpiryMinutes);
 
-        await _authRepository.SetPasswordResetTokenAsync(loginIdentifier, dto.GymId, tokenHash, expiresAt, cancellationToken);
+        await _authRepository.SetPasswordResetTokenAsync(loginIdentifier, tokenHash, expiresAt, cancellationToken);
 
         var includeDevReset = _hostEnvironment.IsDevelopment() && _jwtSettings.ReturnResetTokenInDevelopment;
         string? resetLink = null;
         if (includeDevReset)
         {
             var baseUrl = _passwordResetSettings.FrontendBaseUrl.TrimEnd('/');
-            var gymQuery = dto.GymId.HasValue ? $"&gymId={dto.GymId.Value}" : string.Empty;
-            resetLink = $"{baseUrl}/auth/reset-password?loginIdentifier={Uri.EscapeDataString(loginIdentifier)}&token={Uri.EscapeDataString(resetToken)}{gymQuery}";
+            resetLink = $"{baseUrl}/auth/reset-password?loginIdentifier={Uri.EscapeDataString(loginIdentifier)}&token={Uri.EscapeDataString(resetToken)}";
         }
 
         return new ForgotPasswordResponseDto
@@ -213,7 +212,6 @@ public class AuthService : IAuthService
 
         var success = await _authRepository.ResetPasswordAsync(
             loginIdentifier,
-            dto.GymId,
             tokenHash,
             _passwordHasher.Hash(dto.NewPassword),
             cancellationToken);
@@ -221,7 +219,7 @@ public class AuthService : IAuthService
         if (!success)
             throw new UnauthorizedAccessException("Invalid or expired reset token.");
 
-        var user = await _userRepository.GetByLoginIdentifierAsync(loginIdentifier, dto.GymId, cancellationToken);
+        var user = await _userRepository.GetByLoginIdentifierAsync(loginIdentifier, cancellationToken);
         if (user is not null)
         {
             await _authRepository.EndAllSessionsForUserAsync(user.Id, cancellationToken);
@@ -253,7 +251,10 @@ public class AuthService : IAuthService
 
         var roles = await _permissionResolver.GetRolesForUserAsync(userId, cancellationToken);
         var permissions = await _permissionResolver.GetPermissionsForUserAsync(userId, cancellationToken);
-        var enabledMenuCodes = await GetEnabledMenuCodesAsync(loginContext.GymId, cancellationToken);
+        var enabledMenuCodes = await GetEnabledMenuCodesAsync(loginContext.GymId, permissions, cancellationToken);
+        var enabledFeatureCodes = await GetEnabledFeatureCodesAsync(loginContext.GymId, cancellationToken);
+        var subscriptionAccess = await ResolveSubscriptionAccessAsync(loginContext.GymId, roles, cancellationToken);
+        var brandingFlags = ResolveBrandingFlags(enabledFeatureCodes);
 
         return new SessionPermissionsDto
         {
@@ -265,7 +266,17 @@ public class AuthService : IAuthService
             Roles = roles,
             Permissions = permissions,
             EnabledMenuCodes = enabledMenuCodes,
-            RefreshedAt = DateTime.UtcNow
+            EnabledFeatureCodes = enabledFeatureCodes,
+            RefreshedAt = DateTime.UtcNow,
+            SubscriptionAccessMode = subscriptionAccess.AccessMode,
+            HasSubscriptionAccess = subscriptionAccess.HasSubscriptionAccess,
+            GraceEndsAt = subscriptionAccess.GraceEndsAt,
+            GraceDaysRemaining = subscriptionAccess.GraceDaysRemaining,
+            DaysToExpiry = subscriptionAccess.DaysToExpiry,
+            BannerMessage = subscriptionAccess.BannerMessage,
+            BannerSeverity = subscriptionAccess.BannerSeverity,
+            ShowPoweredBy = brandingFlags.ShowPoweredBy,
+            PlatformProductName = brandingFlags.PlatformProductName
         };
     }
 
@@ -279,16 +290,6 @@ public class AuthService : IAuthService
 
         if (context.GymId.HasValue && !context.GymIsActive)
             throw new UnauthorizedAccessException("Your gym is inactive. Contact support.");
-
-        if (context.GymId.HasValue)
-            await EnsureSubscriptionAccessAsync(context.GymId.Value, cancellationToken);
-    }
-
-    private async Task EnsureSubscriptionAccessAsync(Guid gymId, CancellationToken cancellationToken)
-    {
-        var subscription = await _saasRepository.GetGymSubscriptionAsync(gymId, cancellationToken);
-        if (subscription is not null && !subscription.HasAccess)
-            throw new UnauthorizedAccessException("Your subscription has expired. Please renew to continue.");
     }
 
     private async Task<LoginResponseDto> IssueTokensAsync(
@@ -328,7 +329,10 @@ public class AuthService : IAuthService
 
         var roles = await _permissionResolver.GetRolesForUserAsync(userId, cancellationToken);
         var permissions = await _permissionResolver.GetPermissionsForUserAsync(userId, cancellationToken);
-        var enabledMenuCodes = await GetEnabledMenuCodesAsync(loginContext.GymId, cancellationToken);
+        var enabledMenuCodes = await GetEnabledMenuCodesAsync(loginContext.GymId, permissions, cancellationToken);
+        var enabledFeatureCodes = await GetEnabledFeatureCodesAsync(loginContext.GymId, cancellationToken);
+        var subscriptionAccess = await ResolveSubscriptionAccessAsync(loginContext.GymId, roles, cancellationToken);
+        var brandingFlags = ResolveBrandingFlags(enabledFeatureCodes);
 
         var tokenContext = new TokenGenerationContext
         {
@@ -369,16 +373,60 @@ public class AuthService : IAuthService
             Roles = roles,
             Permissions = permissions,
             EnabledMenuCodes = enabledMenuCodes,
-            MustChangePassword = loginContext.MustChangePassword
+            EnabledFeatureCodes = enabledFeatureCodes,
+            MustChangePassword = loginContext.MustChangePassword,
+            SubscriptionAccessMode = subscriptionAccess.AccessMode,
+            HasSubscriptionAccess = subscriptionAccess.HasSubscriptionAccess,
+            GraceEndsAt = subscriptionAccess.GraceEndsAt,
+            GraceDaysRemaining = subscriptionAccess.GraceDaysRemaining,
+            DaysToExpiry = subscriptionAccess.DaysToExpiry,
+            BannerMessage = subscriptionAccess.BannerMessage,
+            BannerSeverity = subscriptionAccess.BannerSeverity,
+            ShowPoweredBy = brandingFlags.ShowPoweredBy,
+            PlatformProductName = brandingFlags.PlatformProductName
         };
     }
 
-    private async Task<IReadOnlyList<string>> GetEnabledMenuCodesAsync(Guid? gymId, CancellationToken cancellationToken)
+    private (bool ShowPoweredBy, string PlatformProductName) ResolveBrandingFlags(IReadOnlyList<string> enabledFeatureCodes)
+    {
+        var hasWhiteLabel = enabledFeatureCodes.Contains("WHITE_LABEL", StringComparer.OrdinalIgnoreCase);
+        return (!hasWhiteLabel, _saasSettings.PlatformProductName);
+    }
+
+    private Task<SubscriptionAccessStateDto> ResolveSubscriptionAccessAsync(
+        Guid? gymId,
+        IReadOnlyList<string> roles,
+        CancellationToken cancellationToken)
+    {
+        if (!gymId.HasValue)
+        {
+            return Task.FromResult(new SubscriptionAccessStateDto
+            {
+                AccessMode = Constants.SubscriptionAccessModes.Active,
+                HasSubscriptionAccess = true
+            });
+        }
+
+        return _subscriptionAccessService.ResolveAsync(gymId.Value, roles, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<string>> GetEnabledMenuCodesAsync(
+        Guid? gymId,
+        IReadOnlyList<string> permissions,
+        CancellationToken cancellationToken)
     {
         if (!gymId.HasValue)
             return Array.Empty<string>();
 
-        return await _gymMenuRepository.GetEnabledMenuCodesAsync(gymId.Value, cancellationToken);
+        return await _featureResolver.GetAccessibleMenuCodesAsync(gymId.Value, permissions, cancellationToken);
+    }
+
+    private async Task<IReadOnlyList<string>> GetEnabledFeatureCodesAsync(Guid? gymId, CancellationToken cancellationToken)
+    {
+        if (!gymId.HasValue)
+            return Array.Empty<string>();
+
+        return await _featureResolver.GetEnabledFeatureCodesAsync(gymId.Value, cancellationToken);
     }
 
     /// <summary>

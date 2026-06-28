@@ -217,6 +217,18 @@ public class QrCheckInDto
     public string QrPayload { get; set; } = string.Empty;
 }
 
+public class QrScanResultDto
+{
+    public int? AttendanceId { get; set; }
+    public int? BookingId { get; set; }
+    public int MemberId { get; set; }
+    public string MemberName { get; set; } = string.Empty;
+    public string? MembershipStatus { get; set; }
+    public string? MembershipPlanName { get; set; }
+    public string? BookingStatus { get; set; }
+    public string? ClassName { get; set; }
+}
+
 public class MemberDashboardMembershipDto
 {
     public int MembershipId { get; set; }
@@ -237,9 +249,22 @@ public class MemberDashboardPaymentDto
     public string? InvoiceNumber { get; set; }
 }
 
+public class MemberTodayVisitDto
+{
+    public DateTime? CheckInAt { get; set; }
+    public DateTime? CheckOutAt { get; set; }
+    public string StatusCode { get; set; } = string.Empty;
+    public string StatusName { get; set; } = string.Empty;
+    public string? CheckoutType { get; set; }
+    public bool IsAutoCheckout { get; set; }
+    public bool IsCurrentlyCheckedIn { get; set; }
+    public string? CheckedOutByName { get; set; }
+}
+
 public class MemberSelfServiceDashboardDto
 {
     public MemberDashboardMembershipDto? ActiveMembership { get; set; }
+    public MemberTodayVisitDto? TodayVisit { get; set; }
     public decimal AttendancePercentage { get; set; }
     public MemberGoalDto? CurrentGoal { get; set; }
     public WorkoutTrackingDto? TodayWorkout { get; set; }

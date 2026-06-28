@@ -30,7 +30,9 @@ public interface IWebsiteRepository
     Task<IReadOnlyList<WebsiteLeadCaptureDto>> SearchAllLeadsAsync(Guid gymId, WebsiteLeadSearchQueryDto query, CancellationToken cancellationToken = default);
     Task LinkLeadCaptureAsync(Guid gymId, int websiteLeadId, int leadId, CancellationToken cancellationToken = default);
     Task<PublicWebsiteDto?> GetPublicWebsiteAsync(string websiteSlug, CancellationToken cancellationToken = default);
+    Task<PublicWebsiteDto?> GetWebsitePreviewAsync(string websiteSlug, CancellationToken cancellationToken = default);
     Task<Guid?> GetGymIdBySlugAsync(string websiteSlug, CancellationToken cancellationToken = default);
+    Task<Guid?> GetGymIdBySlugAnyAsync(string websiteSlug, CancellationToken cancellationToken = default);
     Task<WebsiteAnalyticsOverviewDto> GetAnalyticsAsync(Guid gymId, int days, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<WebsiteNotificationRecipientDto>> GetNotificationRecipientsAsync(Guid gymId, CancellationToken cancellationToken = default);
 }
@@ -61,6 +63,7 @@ public interface IWebsiteService
     Task<WebsiteAnalyticsOverviewDto> GetAnalyticsAsync(int days = 30, CancellationToken cancellationToken = default);
     Task<byte[]> ExportLeadsAsync(string format, WebsiteLeadSearchQueryDto query, CancellationToken cancellationToken = default);
     Task<PublicWebsiteDto> GetPublicWebsiteAsync(string gymSlug, CancellationToken cancellationToken = default);
+    Task<PublicWebsiteDto> GetWebsitePreviewAsync(string gymSlug, CancellationToken cancellationToken = default);
     Task<int> CapturePublicLeadAsync(PublicWebsiteLeadDto dto, CancellationToken cancellationToken = default);
     Task<int> BookPublicTrialAsync(PublicTrialBookingDto dto, CancellationToken cancellationToken = default);
     Task<string> GenerateSitemapAsync(string gymSlug, CancellationToken cancellationToken = default);

@@ -243,11 +243,18 @@ public class WebsiteRepository : IWebsiteRepository
     public Task LinkLeadCaptureAsync(Guid gymId, int websiteLeadId, int leadId, CancellationToken cancellationToken = default) =>
         _sp.ExecuteAsync(StoredProcedureNames.ConvertWebsiteLeadCapture, new { GymId = gymId, WebsiteLeadId = websiteLeadId, LeadId = leadId }, cancellationToken);
 
-    public async Task<PublicWebsiteDto?> GetPublicWebsiteAsync(string websiteSlug, CancellationToken cancellationToken = default)
+    public async Task<PublicWebsiteDto?> GetPublicWebsiteAsync(string websiteSlug, CancellationToken cancellationToken = default) =>
+        await QueryWebsiteBySlugAsync(StoredProcedureNames.GetPublicWebsiteBySlug, websiteSlug, cancellationToken);
+
+    public async Task<PublicWebsiteDto?> GetWebsitePreviewAsync(string websiteSlug, CancellationToken cancellationToken = default) =>
+        await QueryWebsiteBySlugAsync(StoredProcedureNames.GetWebsiteBySlugForPreview, websiteSlug, cancellationToken);
+
+    private async Task<PublicWebsiteDto?> QueryWebsiteBySlugAsync(
+        string procedureName, string websiteSlug, CancellationToken cancellationToken)
     {
         using var connection = _connectionFactory.CreateConnection();
         using var multi = await connection.QueryMultipleAsync(new CommandDefinition(
-            StoredProcedureNames.GetPublicWebsiteBySlug,
+            procedureName,
             new { WebsiteSlug = websiteSlug },
             commandType: CommandType.StoredProcedure,
             cancellationToken: cancellationToken));
@@ -286,6 +293,13 @@ public class WebsiteRepository : IWebsiteRepository
     {
         var row = await _sp.QuerySingleOrDefaultAsync<GymIdRow>(
             StoredProcedureNames.GetGymIdByWebsiteSlug, new { WebsiteSlug = websiteSlug }, cancellationToken);
+        return row?.GymId;
+    }
+
+    public async Task<Guid?> GetGymIdBySlugAnyAsync(string websiteSlug, CancellationToken cancellationToken = default)
+    {
+        var row = await _sp.QuerySingleOrDefaultAsync<GymIdRow>(
+            StoredProcedureNames.GetGymIdByWebsiteSlugAny, new { WebsiteSlug = websiteSlug }, cancellationToken);
         return row?.GymId;
     }
 

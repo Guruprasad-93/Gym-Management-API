@@ -9,7 +9,7 @@ public class RegisterUserDto
     public string Name { get; set; } = string.Empty;
 
     [Required]
-    [MaxLength(20)]
+    [MaxLength(100)]
     public string LoginIdentifier { get; set; } = string.Empty;
 
     [EmailAddress]

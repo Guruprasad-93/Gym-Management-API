@@ -48,7 +48,7 @@ public class MemberService : IMemberService
         Validation.LoginIdentifierRules.Validate(loginIdentifier);
         var email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email.Trim().ToLowerInvariant();
 
-        if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, gymId, cancellationToken))
+        if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, cancellationToken))
             throw new InvalidOperationException("A user with this login identifier already exists.");
 
         if (!string.IsNullOrWhiteSpace(email) && await _userRepository.ExistsByEmailAsync(email, cancellationToken))
@@ -176,12 +176,9 @@ public class MemberService : IMemberService
             var loginIdentifier = Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier);
             Validation.LoginIdentifierRules.Validate(loginIdentifier);
 
-            if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, member.GymId, cancellationToken))
-            {
-                var conflict = await _userRepository.GetByLoginIdentifierAsync(loginIdentifier, member.GymId, cancellationToken);
-                if (conflict is not null && conflict.Id != member.UserId)
-                    throw new InvalidOperationException("A user with this login identifier already exists.");
-            }
+            var conflict = await _userRepository.GetByLoginIdentifierAsync(loginIdentifier, cancellationToken);
+            if (conflict is not null && conflict.Id != member.UserId)
+                throw new InvalidOperationException("A user with this login identifier already exists.");
         }
 
         if (!string.IsNullOrWhiteSpace(dto.Email))

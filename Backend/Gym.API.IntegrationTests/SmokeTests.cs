@@ -2,6 +2,7 @@ using System.Net;
 using Gym.API.IntegrationTests.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using Gym.Infrastructure.Persistence;
 namespace Gym.API.IntegrationTests;
 
 [Collection(nameof(IntegrationTestCollection))]
@@ -18,7 +19,7 @@ public class SmokeTests : IAsyncLifetime
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
         await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(
             _client,
-            "admin@fitzone-demo.com",
+            DemoDataSeeder.DemoGymAdminLoginIdentifier,
             "Demo@123");
     }
 

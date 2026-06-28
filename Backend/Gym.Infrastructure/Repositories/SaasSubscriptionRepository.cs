@@ -73,7 +73,7 @@ public class SaasSubscriptionRepository : ISaasSubscriptionRepository
         return parameters.Get<int>("@GymSubscriptionId");
     }
 
-    public Task UpdateSubscriptionPlanAsync(Guid gymId, int saasPlanId, string billingCycle, decimal amount,
+    public Task UpdateSubscriptionPlanAsync(Guid gymId, int saasPlanId, string? billingCycle, int? pricingOptionId, decimal amount,
         string? razorpayOrderId, string? razorpayPaymentId, string? razorpaySubscriptionId, int gracePeriodDays,
         CancellationToken cancellationToken = default) =>
         _sp.ExecuteAsync(StoredProcedureNames.SaasUpdateSubscriptionPlan, new
@@ -81,6 +81,7 @@ public class SaasSubscriptionRepository : ISaasSubscriptionRepository
             GymId = gymId,
             SaasPlanId = saasPlanId,
             BillingCycle = billingCycle,
+            PricingOptionId = pricingOptionId,
             Amount = amount,
             RazorpayOrderId = razorpayOrderId,
             RazorpayPaymentId = razorpayPaymentId,
@@ -93,7 +94,7 @@ public class SaasSubscriptionRepository : ISaasSubscriptionRepository
             new { GymId = gymId, CancelAtPeriodEnd = cancelAtPeriodEnd }, cancellationToken);
 
     public async Task<int> CreatePendingPaymentAsync(Guid gymId, int gymSubscriptionId, int saasPlanId, decimal amount,
-        string billingCycle, string razorpayOrderId, CancellationToken cancellationToken = default)
+        string? billingCycle, int? pricingOptionId, string razorpayOrderId, CancellationToken cancellationToken = default)
     {
         var parameters = new DynamicParameters();
         parameters.Add("@GymId", gymId);
@@ -101,15 +102,25 @@ public class SaasSubscriptionRepository : ISaasSubscriptionRepository
         parameters.Add("@SaasPlanId", saasPlanId);
         parameters.Add("@Amount", amount);
         parameters.Add("@BillingCycle", billingCycle);
+        parameters.Add("@PricingOptionId", pricingOptionId);
         parameters.Add("@RazorpayOrderId", razorpayOrderId);
         parameters.Add("@SaasPaymentId", dbType: DbType.Int32, direction: ParameterDirection.Output);
         await _sp.ExecuteAsync(StoredProcedureNames.SaasCreatePendingPayment, parameters, cancellationToken);
         return parameters.Get<int>("@SaasPaymentId");
     }
 
-    public Task CompletePaymentAsync(int saasPaymentId, string razorpayPaymentId, CancellationToken cancellationToken = default) =>
-        _sp.ExecuteAsync(StoredProcedureNames.SaasCompletePayment,
-            new { SaasPaymentId = saasPaymentId, RazorpayPaymentId = razorpayPaymentId }, cancellationToken);
+    public async Task<SaasPaymentCompletionResult> CompletePaymentAsync(int saasPaymentId, string razorpayPaymentId, CancellationToken cancellationToken = default)
+    {
+        var parameters = new DynamicParameters();
+        parameters.Add("@SaasPaymentId", saasPaymentId);
+        parameters.Add("@RazorpayPaymentId", razorpayPaymentId);
+        parameters.Add("@WasAlreadyCompleted", dbType: DbType.Boolean, direction: ParameterDirection.Output);
+        await _sp.ExecuteAsync(StoredProcedureNames.SaasCompletePayment, parameters, cancellationToken);
+        return new SaasPaymentCompletionResult
+        {
+            WasAlreadyCompleted = parameters.Get<bool>("@WasAlreadyCompleted")
+        };
+    }
 
     public async Task<SaasPlatformDashboardDto> GetPlatformDashboardAsync(CancellationToken cancellationToken = default)
     {
@@ -174,6 +185,7 @@ public class SaasSubscriptionRepository : ISaasSubscriptionRepository
             SaasPlanId = row.SaasPlanId,
             Amount = row.Amount,
             BillingCycle = row.BillingCycle,
+            PricingOptionId = row.PricingOptionId,
             RazorpayOrderId = row.RazorpayOrderId,
             Status = row.Status,
             PlanName = row.PlanName
@@ -185,13 +197,24 @@ public class SaasSubscriptionRepository : ISaasSubscriptionRepository
         Id = row.SaasPlanId,
         PlanCode = row.PlanCode,
         PlanName = row.PlanName,
+        Description = row.Description,
+        IsTrialPlan = row.IsTrialPlan,
+        IsPublic = row.IsPublic,
         MaxMembers = row.MaxMembers,
         MaxTrainers = row.MaxTrainers,
+        MaxBranches = row.MaxBranches,
+        MaxStorageGB = row.MaxStorageGB,
+        MaxSmsPerMonth = row.MaxSmsPerMonth,
+        MaxWhatsappMessages = row.MaxWhatsappMessages,
         StorageLimitMb = row.StorageLimitMb,
         WhatsAppNotificationLimit = row.WhatsAppNotificationLimit,
         MonthlyPrice = row.MonthlyPrice,
+        QuarterlyPrice = row.QuarterlyPrice,
+        HalfYearlyPrice = row.HalfYearlyPrice,
         YearlyPrice = row.YearlyPrice,
-        TrialDays = row.TrialDays
+        TrialDays = row.TrialDays,
+        IsActive = row.IsActive,
+        SortOrder = row.SortOrder
     };
 
     private static GymSubscriptionDto MapSubscription(GymSubscriptionRow row) => new()
@@ -203,6 +226,9 @@ public class SaasSubscriptionRepository : ISaasSubscriptionRepository
         PlanName = row.PlanName,
         Status = row.Status,
         BillingCycle = row.BillingCycle,
+        PricingOptionId = row.PricingOptionId,
+        DurationValue = row.DurationValue,
+        DurationUnit = row.DurationUnit,
         Amount = row.Amount,
         StartDate = row.StartDate,
         EndDate = row.EndDate,

@@ -57,6 +57,11 @@ public static class DependencyInjection
         services.AddScoped<IWebsiteService, WebsiteService>();
         services.AddScoped<IWhiteLabelService, WhiteLabelService>();
         services.AddScoped<IGymMenuService, GymMenuService>();
+        services.AddScoped<ISubscriptionAccessService, SubscriptionAccessService>();
+        services.AddScoped<ISubscriptionNotificationService, SubscriptionNotificationService>();
+        services.AddScoped<IFeatureResolverService, FeatureResolverService>();
+        services.AddScoped<IFeatureDependencyService, FeatureDependencyService>();
+        services.AddScoped<IPlanManagementService, PlanManagementService>();
 
         return services;
     }

@@ -2,6 +2,15 @@
   Payroll, Expense Management & Profit/Loss Module
 */
 
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+GO
+
+/* Legacy Expenses from 004 must have IsDeleted before indexes or procedures reference it. */
+IF OBJECT_ID(N'dbo.Expenses', N'U') IS NOT NULL AND COL_LENGTH('dbo.Expenses', 'IsDeleted') IS NULL
+    ALTER TABLE dbo.Expenses ADD IsDeleted BIT NOT NULL CONSTRAINT DF_Expenses_IsDeleted_Legacy DEFAULT (0) WITH VALUES;
+GO
+
 IF OBJECT_ID(N'dbo.ExpenseCategories', N'U') IS NULL
 BEGIN
     CREATE TABLE dbo.ExpenseCategories

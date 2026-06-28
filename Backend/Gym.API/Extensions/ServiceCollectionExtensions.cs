@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using FluentValidation.AspNetCore;
+using Gym.API.Json;
 using Gym.Application.Interfaces;
 using Gym.Application.Options;
 using Gym.Application.Services;
@@ -14,13 +15,21 @@ namespace Gym.API.Extensions;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddApiServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddApiServices(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment environment)
     {
         services.AddHttpContextAccessor();
         services.AddApplication();
-        services.AddInfrastructure(configuration);
+        services.AddInfrastructure(configuration, environment);
 
-        services.AddControllers();
+        services.AddControllers()
+            .AddJsonOptions(options =>
+            {
+                options.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+                options.JsonSerializerOptions.Converters.Add(new UtcNullableDateTimeJsonConverter());
+            });
         services.AddFluentValidationAutoValidation();
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen(options =>
@@ -47,6 +56,7 @@ public static class ServiceCollectionExtensions
                     Array.Empty<string>()
                 }
             });
+            options.OperationFilter<LoginRequestSwaggerFilter>();
         });
 
         services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));

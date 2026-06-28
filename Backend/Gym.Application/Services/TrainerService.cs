@@ -64,7 +64,7 @@ public class TrainerService : ITrainerService
             Validation.LoginIdentifierRules.Validate(loginIdentifier);
             var email = string.IsNullOrWhiteSpace(dto.Email) ? null : dto.Email.Trim().ToLowerInvariant();
 
-            if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, gymId, cancellationToken))
+            if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, cancellationToken))
                 throw new InvalidOperationException("A user with this login identifier already exists.");
 
             if (!string.IsNullOrWhiteSpace(email) && await _userRepository.ExistsByEmailAsync(email, cancellationToken))

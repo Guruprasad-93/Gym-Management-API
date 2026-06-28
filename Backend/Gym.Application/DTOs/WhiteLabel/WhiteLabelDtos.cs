@@ -101,6 +101,9 @@ public sealed class WhiteLabelLoginBrandingDto
     public string? SupportPhone { get; set; }
     public string? LogoUrl { get; set; }
     public string? LoginBackgroundUrl { get; set; }
+    /// <summary>When true, UI shows "Powered by [platform]" footer (Basic plan).</summary>
+    public bool ShowPoweredBy { get; set; }
+    public string? PlatformProductName { get; set; }
 }
 
 public sealed class WhiteLabelPreviewDto

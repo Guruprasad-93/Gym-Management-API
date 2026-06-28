@@ -18,17 +18,20 @@ public class WhiteLabelController : ControllerBase
     public WhiteLabelController(IWhiteLabelService whiteLabelService) => _whiteLabelService = whiteLabelService;
 
     [HttpGet("settings")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ViewWhiteLabel)]
     public async Task<ActionResult<ApiResponse<WhiteLabelSettingsDto>>> GetSettings(CancellationToken cancellationToken) =>
         Ok(ApiResponse<WhiteLabelSettingsDto>.Ok(await _whiteLabelService.GetSettingsAsync(cancellationToken)));
 
     [HttpPut("settings")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ManageWhiteLabel)]
     public async Task<ActionResult<ApiResponse<WhiteLabelSettingsDto>>> UpsertSettings(
         [FromBody] UpsertWhiteLabelSettingsDto dto, CancellationToken cancellationToken) =>
         Ok(ApiResponse<WhiteLabelSettingsDto>.Ok(await _whiteLabelService.UpsertSettingsAsync(dto, cancellationToken)));
 
     [HttpPost("settings/enable")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ManageWhiteLabel)]
     public async Task<ActionResult<ApiResponse<object>>> Enable(CancellationToken cancellationToken)
     {
@@ -37,6 +40,7 @@ public class WhiteLabelController : ControllerBase
     }
 
     [HttpPost("settings/disable")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ManageWhiteLabel)]
     public async Task<ActionResult<ApiResponse<object>>> Disable(CancellationToken cancellationToken)
     {
@@ -45,6 +49,7 @@ public class WhiteLabelController : ControllerBase
     }
 
     [HttpPut("domain")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ManageWhiteLabel)]
     public async Task<ActionResult<ApiResponse<object>>> UpdateDomain(
         [FromBody] UpdateWhiteLabelDomainDto dto, CancellationToken cancellationToken)
@@ -54,17 +59,20 @@ public class WhiteLabelController : ControllerBase
     }
 
     [HttpGet("email-templates")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ViewWhiteLabel)]
     public async Task<ActionResult<ApiResponse<IReadOnlyList<WhiteLabelEmailTemplateDto>>>> GetEmailTemplates(CancellationToken cancellationToken) =>
         Ok(ApiResponse<IReadOnlyList<WhiteLabelEmailTemplateDto>>.Ok(await _whiteLabelService.GetEmailTemplatesAsync(cancellationToken)));
 
     [HttpPost("email-templates")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ManageWhiteLabel)]
     public async Task<ActionResult<ApiResponse<WhiteLabelEmailTemplateDto>>> CreateEmailTemplate(
         [FromBody] UpsertWhiteLabelEmailTemplateDto dto, CancellationToken cancellationToken) =>
         Ok(ApiResponse<WhiteLabelEmailTemplateDto>.Ok(await _whiteLabelService.CreateEmailTemplateAsync(dto, cancellationToken)));
 
     [HttpPut("email-templates/{id:int}")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ManageWhiteLabel)]
     public async Task<ActionResult<ApiResponse<WhiteLabelEmailTemplateDto>>> UpdateEmailTemplate(
         int id, [FromBody] UpsertWhiteLabelEmailTemplateDto dto, CancellationToken cancellationToken)
@@ -81,6 +89,7 @@ public class WhiteLabelController : ControllerBase
     }
 
     [HttpDelete("email-templates/{id:int}")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ManageWhiteLabel)]
     public async Task<ActionResult<ApiResponse<object>>> DeleteEmailTemplate(int id, CancellationToken cancellationToken)
     {
@@ -89,6 +98,7 @@ public class WhiteLabelController : ControllerBase
     }
 
     [HttpGet("mobile-settings")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ViewWhiteLabel)]
     public async Task<ActionResult<ApiResponse<WhiteLabelMobileSettingsDto>>> GetMobileSettings(CancellationToken cancellationToken)
     {
@@ -98,12 +108,14 @@ public class WhiteLabelController : ControllerBase
     }
 
     [HttpPut("mobile-settings")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ManageWhiteLabel)]
     public async Task<ActionResult<ApiResponse<WhiteLabelMobileSettingsDto>>> UpsertMobileSettings(
         [FromBody] UpsertWhiteLabelMobileSettingsDto dto, CancellationToken cancellationToken) =>
         Ok(ApiResponse<WhiteLabelMobileSettingsDto>.Ok(await _whiteLabelService.UpsertMobileSettingsAsync(dto, cancellationToken)));
 
     [HttpGet("preview")]
+    [RequireFeature("WHITE_LABEL")]
     [RequirePermission(Permissions.ViewWhiteLabel)]
     public async Task<ActionResult<ApiResponse<WhiteLabelPreviewDto>>> GetPreview(CancellationToken cancellationToken) =>
         Ok(ApiResponse<WhiteLabelPreviewDto>.Ok(await _whiteLabelService.GetPreviewAsync(cancellationToken)));

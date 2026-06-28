@@ -12,11 +12,11 @@ public class AuthRepository : IAuthRepository
 
     public AuthRepository(IStoredProcedureExecutor sp) => _sp = sp;
 
-    public async Task<LoginUserResult?> LoginUserAsync(string loginIdentifier, Guid? gymId, CancellationToken cancellationToken = default)
+    public async Task<LoginUserResult?> LoginUserAsync(string loginIdentifier, CancellationToken cancellationToken = default)
     {
         var row = await _sp.QuerySingleOrDefaultAsync<LoginUserRow>(
             StoredProcedureNames.LoginUser,
-            new { LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(), GymId = gymId },
+            new { LoginIdentifier = loginIdentifier.Trim() },
             cancellationToken);
 
         if (row is null) return null;
@@ -66,17 +66,17 @@ public class AuthRepository : IAuthRepository
             new { UserId = userId, PasswordHash = passwordHash },
             cancellationToken);
 
-    public Task SetPasswordResetTokenAsync(string loginIdentifier, Guid? gymId, string resetToken, DateTime expiresAt, CancellationToken cancellationToken = default) =>
+    public Task SetPasswordResetTokenAsync(string loginIdentifier, string resetToken, DateTime expiresAt, CancellationToken cancellationToken = default) =>
         _sp.ExecuteAsync(
             StoredProcedureNames.SetPasswordResetToken,
-            new { LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(), GymId = gymId, ResetToken = resetToken, ExpiresAt = expiresAt },
+            new { LoginIdentifier = loginIdentifier.Trim(), ResetToken = resetToken, ExpiresAt = expiresAt },
             cancellationToken);
 
-    public async Task<bool> ResetPasswordAsync(string loginIdentifier, Guid? gymId, string resetToken, string passwordHash, CancellationToken cancellationToken = default)
+    public async Task<bool> ResetPasswordAsync(string loginIdentifier, string resetToken, string passwordHash, CancellationToken cancellationToken = default)
     {
         var rows = await _sp.QuerySingleOrDefaultAsync<int>(
             StoredProcedureNames.ResetUserPassword,
-            new { LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(), GymId = gymId, ResetToken = resetToken, PasswordHash = passwordHash },
+            new { LoginIdentifier = loginIdentifier.Trim(), ResetToken = resetToken, PasswordHash = passwordHash },
             cancellationToken);
 
         return rows > 0;

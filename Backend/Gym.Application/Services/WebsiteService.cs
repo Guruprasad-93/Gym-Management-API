@@ -6,11 +6,14 @@ using Gym.Application.DTOs.Leads;
 using Gym.Application.DTOs.Notifications;
 using Gym.Application.DTOs.Website;
 using Gym.Application.Interfaces;
+using Gym.Domain.Constants;
 
 namespace Gym.Application.Services;
 
 public class WebsiteService : IWebsiteService
 {
+    private const string WebsiteBuilderFeatureCode = "WEBSITE_BUILDER";
+
     private readonly IWebsiteRepository _repository;
     private readonly ILeadRepository _leadRepository;
     private readonly INotificationService _notificationService;
@@ -18,6 +21,7 @@ public class WebsiteService : IWebsiteService
     private readonly ICurrentUserService _currentUser;
     private readonly IWebsiteReportExporter _exporter;
     private readonly IWhiteLabelService _whiteLabelService;
+    private readonly IFeatureRepository _featureRepository;
 
     public WebsiteService(
         IWebsiteRepository repository,
@@ -26,7 +30,8 @@ public class WebsiteService : IWebsiteService
         IAuditService auditService,
         ICurrentUserService currentUser,
         IWebsiteReportExporter exporter,
-        IWhiteLabelService whiteLabelService)
+        IWhiteLabelService whiteLabelService,
+        IFeatureRepository featureRepository)
     {
         _repository = repository;
         _leadRepository = leadRepository;
@@ -35,6 +40,7 @@ public class WebsiteService : IWebsiteService
         _currentUser = currentUser;
         _exporter = exporter;
         _whiteLabelService = whiteLabelService;
+        _featureRepository = featureRepository;
     }
 
     public async Task<GymWebsiteSettingsDto> UpsertSettingsAsync(UpsertGymWebsiteSettingsDto dto, CancellationToken cancellationToken = default)
@@ -246,6 +252,26 @@ public class WebsiteService : IWebsiteService
     {
         var site = await _repository.GetPublicWebsiteAsync(gymSlug, cancellationToken)
             ?? throw new KeyNotFoundException("Website not found or not published.");
+
+        await EnsureSubscriptionHasWebsiteBuilderAsync(site.Settings.GymId, cancellationToken);
+        await _whiteLabelService.ApplyWebsiteSettingsDefaultsAsync(site.Settings.GymId, site.Settings, cancellationToken);
+        return site;
+    }
+
+    public async Task<PublicWebsiteDto> GetWebsitePreviewAsync(string gymSlug, CancellationToken cancellationToken = default)
+    {
+        EnsureCanView();
+        var site = await _repository.GetWebsitePreviewAsync(gymSlug, cancellationToken)
+            ?? throw new KeyNotFoundException("Website not found.");
+
+        if (!_currentUser.HasRole(RoleNames.SuperAdmin))
+        {
+            var gymId = _currentUser.RequireGymId();
+            if (gymId != site.Settings.GymId)
+                throw new UnauthorizedAccessException("Cannot preview another gym's website.");
+        }
+
+        await EnsureSubscriptionHasWebsiteBuilderAsync(site.Settings.GymId, cancellationToken);
         await _whiteLabelService.ApplyWebsiteSettingsDefaultsAsync(site.Settings.GymId, site.Settings, cancellationToken);
         return site;
     }
@@ -347,6 +373,8 @@ public class WebsiteService : IWebsiteService
         var gymId = await _repository.GetGymIdBySlugAsync(slug, cancellationToken);
         if (gymId is null)
             throw new KeyNotFoundException("Website not found or not published.");
+
+        await EnsureSubscriptionHasWebsiteBuilderAsync(gymId.Value, cancellationToken);
         return gymId.Value;
     }
 
@@ -375,6 +403,13 @@ public class WebsiteService : IWebsiteService
             ActionType = action,
             NewValue = value
         }, cancellationToken);
+
+    private async Task EnsureSubscriptionHasWebsiteBuilderAsync(Guid gymId, CancellationToken cancellationToken)
+    {
+        var features = await _featureRepository.GetEnabledFeatureCodesAsync(gymId, cancellationToken);
+        if (!features.Contains(WebsiteBuilderFeatureCode, StringComparer.OrdinalIgnoreCase))
+            throw new KeyNotFoundException("Website not found or not published.");
+    }
 
     private void EnsureCanView()
     {

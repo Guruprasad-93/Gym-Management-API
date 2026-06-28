@@ -89,6 +89,7 @@ public static class Permissions
     public const string ViewSaasSubscription = "VIEW_SAAS_SUBSCRIPTION";
     public const string ManageSaasSubscription = "MANAGE_SAAS_SUBSCRIPTION";
     public const string ViewPlatformSaas = "VIEW_PLATFORM_SAAS";
+    public const string ManageSubscriptionPlans = "MANAGE_SUBSCRIPTION_PLANS";
     public const string ManageGymBranding = "MANAGE_GYM_BRANDING";
 
     public const string ViewLeads = "VIEW_LEADS";

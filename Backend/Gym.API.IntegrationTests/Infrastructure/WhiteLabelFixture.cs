@@ -1,3 +1,4 @@
+using Gym.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -19,8 +20,8 @@ public class WhiteLabelFixture : IAsyncLifetime
         AdminClient = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
         SuperAdminClient = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
         AnonClient = _factory.CreateClient();
-        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(AdminClient, "admin@fitzone-demo.com", "Demo@123");
-        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(SuperAdminClient, "superadmin@gym.com", "SuperAdmin@123");
+        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(AdminClient, DemoDataSeeder.DemoGymAdminLoginIdentifier, DemoDataSeeder.DefaultDemoPassword);
+        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(SuperAdminClient, "superadmin", "SuperAdmin@123");
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

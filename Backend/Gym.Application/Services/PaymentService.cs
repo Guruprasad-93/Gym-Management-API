@@ -5,6 +5,7 @@ using Gym.Application.DTOs.Payments;
 using Gym.Application.DTOs.Notifications;
 using Gym.Application.Interfaces;
 using Gym.Application.Options;
+using Gym.Application.Payments;
 using Gym.Domain.Constants;
 using Microsoft.Extensions.Options;
 
@@ -130,18 +131,39 @@ public class PaymentService : IPaymentService
             NewValue = payment
         }, cancellationToken);
 
-        return new RazorpayOrderResponseDto
+        return BuildRazorpayOrderResponse(payment.Id, razorpayOrderId, amount, member.FullName, member.Email, membership.PlanName);
+    }
+
+    private RazorpayOrderResponseDto BuildRazorpayOrderResponse(
+        int paymentId,
+        string razorpayOrderId,
+        decimal amount,
+        string? memberName,
+        string? memberEmail,
+        string? planName)
+    {
+        var response = new RazorpayOrderResponseDto
         {
-            PaymentId = payment.Id,
+            PaymentId = paymentId,
             RazorpayOrderId = razorpayOrderId,
             KeyId = _razorpaySettings.KeyId,
             Amount = amount,
             Currency = _razorpaySettings.Currency,
             AmountInPaise = (int)Math.Round(amount * 100m, MidpointRounding.AwayFromZero),
-            MemberName = member.FullName,
-            MemberEmail = member.Email,
-            PlanName = membership.PlanName
+            MemberName = memberName,
+            MemberEmail = memberEmail,
+            PlanName = planName
         };
+
+        if (_razorpaySettings.UseMockGateway || RazorpayMockCheckoutHelper.IsMockOrder(razorpayOrderId))
+        {
+            var mock = RazorpayMockCheckoutHelper.CreateSuccess(razorpayOrderId, _razorpaySettings.KeySecret);
+            response.UseMockCheckout = true;
+            response.MockPaymentId = mock.PaymentId;
+            response.MockSignature = mock.Signature;
+        }
+
+        return response;
     }
 
     public async Task<PaymentResponseDto> VerifyRazorpayPaymentAsync(

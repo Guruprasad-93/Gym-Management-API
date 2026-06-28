@@ -27,8 +27,7 @@ public class LoginCommandHandler : IRequestHandler<LoginCommand, LoginResponseDt
             new LoginRequestDto
             {
                 LoginIdentifier = request.LoginIdentifier,
-                Password = request.Password,
-                GymId = request.GymId
+                Password = request.Password
             },
             userAgent,
             http?.Connection.RemoteIpAddress?.ToString(),

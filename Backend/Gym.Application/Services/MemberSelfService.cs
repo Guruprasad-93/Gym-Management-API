@@ -47,7 +47,9 @@ public class MemberSelfService : IMemberSelfService
     public async Task<MemberSelfServiceDashboardDto> GetDashboardAsync(CancellationToken cancellationToken = default)
     {
         var (gymId, memberId) = await ResolveCurrentMemberAsync(cancellationToken);
-        return await _repository.GetDashboardAsync(gymId, memberId, cancellationToken);
+        var dashboard = await _repository.GetDashboardAsync(gymId, memberId, cancellationToken);
+        dashboard.TodayVisit = await _attendanceRepository.GetMemberTodayVisitAsync(gymId, memberId, cancellationToken);
+        return dashboard;
     }
 
     public async Task<MemberSelfServiceAnalyticsDto> GetAnalyticsAsync(CancellationToken cancellationToken = default)
@@ -228,7 +230,7 @@ public class MemberSelfService : IMemberSelfService
         };
     }
 
-    public async Task<int> ScanQrCheckInAsync(QrCheckInDto dto, CancellationToken cancellationToken = default)
+    public async Task<QrScanResultDto> ScanQrCheckInAsync(QrCheckInDto dto, CancellationToken cancellationToken = default)
     {
         if (!_currentUser.HasPermission(Permissions.ManageAttendance))
             throw new UnauthorizedAccessException("Attendance management permission required.");
@@ -240,7 +242,7 @@ public class MemberSelfService : IMemberSelfService
 
         var attendanceId = await _repository.QrCheckInAsync(gymId, memberId, token, _currentUser.UserId, cancellationToken);
         await LogAsync(gymId, AuditEntityNames.MemberAttendance, attendanceId.ToString(), AuditActionTypes.CheckIn, new { QrCheckIn = true, memberId }, cancellationToken);
-        return attendanceId;
+        return await BuildQrScanResultAsync(gymId, memberId, attendanceId, cancellationToken);
     }
 
     public async Task<byte[]> ExportProgressPdfAsync(CancellationToken cancellationToken = default)
@@ -328,6 +330,25 @@ public class MemberSelfService : IMemberSelfService
             throw new ArgumentException("Invalid QR code format.");
 
         return (gymId, memberId, parts[3]);
+    }
+
+    private async Task<QrScanResultDto> BuildQrScanResultAsync(
+        Guid gymId,
+        int memberId,
+        int attendanceId,
+        CancellationToken cancellationToken)
+    {
+        var member = await _memberRepository.GetByIdAsync(memberId, gymId, null, cancellationToken)
+            ?? throw new KeyNotFoundException("Member not found.");
+
+        return new QrScanResultDto
+        {
+            AttendanceId = attendanceId,
+            MemberId = memberId,
+            MemberName = member.FullName,
+            MembershipStatus = member.MembershipStatus,
+            MembershipPlanName = member.MembershipPlanName
+        };
     }
 
     private Task LogAsync(Guid gymId, string entity, string entityId, string action, object? value, CancellationToken cancellationToken) =>

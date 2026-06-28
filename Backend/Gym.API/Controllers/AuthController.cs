@@ -768,11 +768,29 @@ public class AuthController : ControllerBase
 
             Permissions = result.Permissions,
 
+            EnabledMenuCodes = result.EnabledMenuCodes,
 
+            EnabledFeatureCodes = result.EnabledFeatureCodes,
 
-            MustChangePassword = result.MustChangePassword
+            MustChangePassword = result.MustChangePassword,
 
+            SubscriptionAccessMode = result.SubscriptionAccessMode,
 
+            HasSubscriptionAccess = result.HasSubscriptionAccess,
+
+            GraceEndsAt = result.GraceEndsAt,
+
+            GraceDaysRemaining = result.GraceDaysRemaining,
+
+            DaysToExpiry = result.DaysToExpiry,
+
+            BannerMessage = result.BannerMessage,
+
+            BannerSeverity = result.BannerSeverity,
+
+            ShowPoweredBy = result.ShowPoweredBy,
+
+            PlatformProductName = result.PlatformProductName
 
         };
 

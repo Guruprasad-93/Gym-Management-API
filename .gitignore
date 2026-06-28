@@ -139,3 +139,9 @@ BenchmarkDotNet.Artifacts/
 *.sqlite
 *.mdf
 *.ldf
+
+# Local QA / E2E run artifacts (do not commit)
+Backend/scripts/*-results.json
+Backend/scripts/razorpay-e2e-screenshots/
+Backend/scripts/razorpay-checkout-harness.html
+publish/

@@ -162,11 +162,12 @@ BEGIN
         IF EXISTS (
             SELECT 1 FROM dbo.MemberAttendance
             WHERE GymId = @GymId AND MemberId = @MemberId AND CheckOutAt IS NULL
+              AND AttendanceStatusId = 1
         )
             THROW 50401, 'Member already has an open check-in session.', 1;
 
         DECLARE @Now DATETIME2 = SYSUTCDATETIME();
-        DECLARE @Date DATE = CAST(@Now AS DATE);
+        DECLARE @Date DATE = CAST((@Now AT TIME ZONE 'UTC' AT TIME ZONE 'India Standard Time') AS DATE);
 
         INSERT INTO dbo.MemberAttendance (
             GymId, MemberId, TrainerId, AttendanceStatusId, AttendanceDate,
@@ -199,6 +200,7 @@ BEGIN
         SELECT TOP 1 @OpenId = MemberAttendanceId
         FROM dbo.MemberAttendance
         WHERE GymId = @GymId AND MemberId = @MemberId AND CheckOutAt IS NULL
+          AND AttendanceStatusId = 1
         ORDER BY CheckInAt DESC;
 
         IF @OpenId IS NULL
@@ -261,6 +263,7 @@ BEGIN
                 TrainerId = COALESCE(@TrainerId, TrainerId),
                 Notes = @Notes,
                 MarkedByUserId = @MarkedByUserId,
+                CheckOutAt = COALESCE(CheckOutAt, @Now),
                 UpdatedAt = @Now
             WHERE MemberAttendanceId = @ExistingId;
             SET @MemberAttendanceId = @ExistingId;
@@ -272,7 +275,7 @@ BEGIN
                 CheckInAt, CheckOutAt, Notes, MarkedByUserId, CreatedAt, UpdatedAt)
             VALUES (
                 @GymId, @MemberId, @TrainerId, @AttendanceStatusId, @AttendanceDate,
-                @Now, NULL, @Notes, @MarkedByUserId, @Now, NULL);
+                @Now, @Now, @Notes, @MarkedByUserId, @Now, NULL);
             SET @MemberAttendanceId = SCOPE_IDENTITY();
         END
     END TRY
@@ -330,7 +333,7 @@ CREATE OR ALTER PROCEDURE dbo.sp_GetTodayMemberAttendance
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @Today DATE = CAST(SYSUTCDATETIME() AS DATE);
+    DECLARE @Today DATE = CAST((SYSUTCDATETIME() AT TIME ZONE 'UTC' AT TIME ZONE 'India Standard Time') AS DATE);
 
     SELECT
         ma.MemberAttendanceId,
@@ -613,7 +616,7 @@ CREATE OR ALTER PROCEDURE dbo.sp_GetAttendanceDashboard
 AS
 BEGIN
     SET NOCOUNT ON;
-    DECLARE @Today DATE = CAST(SYSUTCDATETIME() AS DATE);
+    DECLARE @Today DATE = CAST((SYSUTCDATETIME() AT TIME ZONE 'UTC' AT TIME ZONE 'India Standard Time') AS DATE);
 
     SELECT
         (SELECT COUNT(*) FROM dbo.Members m WHERE m.IsDeleted = 0 AND m.IsActive = 1
@@ -624,7 +627,7 @@ BEGIN
             AND (@TrainerId IS NULL OR m.TrainerId = @TrainerId)) AS MembersPresentToday,
         (SELECT COUNT(*) FROM dbo.MemberAttendance ma
             INNER JOIN dbo.Members m ON m.MemberId = ma.MemberId
-            WHERE ma.AttendanceDate = @Today AND ma.CheckOutAt IS NULL
+            WHERE ma.AttendanceDate = @Today AND ma.CheckOutAt IS NULL AND ma.AttendanceStatusId = 1
             AND (ma.GymId = @GymId) AND (@TrainerId IS NULL OR m.TrainerId = @TrainerId)) AS CurrentlyCheckedIn,
         (SELECT COUNT(*) FROM dbo.MemberAttendance ma
             INNER JOIN dbo.Members m ON m.MemberId = ma.MemberId

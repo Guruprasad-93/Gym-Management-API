@@ -10,13 +10,13 @@ public interface ISaasSubscriptionRepository
     Task<GymUsageDto> GetGymUsageAsync(Guid gymId, CancellationToken cancellationToken = default);
     Task<TenantLimitCheckDto> CheckTenantLimitAsync(Guid gymId, string resourceType, CancellationToken cancellationToken = default);
     Task<int> CreateTrialSubscriptionAsync(Guid gymId, int gracePeriodDays, CancellationToken cancellationToken = default);
-    Task UpdateSubscriptionPlanAsync(Guid gymId, int saasPlanId, string billingCycle, decimal amount,
+    Task UpdateSubscriptionPlanAsync(Guid gymId, int saasPlanId, string? billingCycle, int? pricingOptionId, decimal amount,
         string? razorpayOrderId, string? razorpayPaymentId, string? razorpaySubscriptionId, int gracePeriodDays,
         CancellationToken cancellationToken = default);
     Task CancelSubscriptionAsync(Guid gymId, bool cancelAtPeriodEnd, CancellationToken cancellationToken = default);
     Task<int> CreatePendingPaymentAsync(Guid gymId, int gymSubscriptionId, int saasPlanId, decimal amount,
-        string billingCycle, string razorpayOrderId, CancellationToken cancellationToken = default);
-    Task CompletePaymentAsync(int saasPaymentId, string razorpayPaymentId, CancellationToken cancellationToken = default);
+        string? billingCycle, int? pricingOptionId, string razorpayOrderId, CancellationToken cancellationToken = default);
+    Task<SaasPaymentCompletionResult> CompletePaymentAsync(int saasPaymentId, string razorpayPaymentId, CancellationToken cancellationToken = default);
     Task<SaasPlatformDashboardDto> GetPlatformDashboardAsync(CancellationToken cancellationToken = default);
     Task ExpireSubscriptionsAsync(int gracePeriodDays, CancellationToken cancellationToken = default);
     Task SeedNotificationSettingsAsync(Guid gymId, CancellationToken cancellationToken = default);

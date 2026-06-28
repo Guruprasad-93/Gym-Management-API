@@ -13,6 +13,7 @@ public static class PushNotificationTypes
     public const string DietPlanAssigned = "DietPlanAssigned";
     public const string DietReminder = "DietReminder";
     public const string AttendanceReminder = "AttendanceReminder";
+    public const string CheckoutReminder = "CheckoutReminder";
     public const string GoalCompleted = "GoalCompleted";
     public const string GoalReminder = "GoalReminder";
     public const string ReferralRewardEarned = "ReferralRewardEarned";

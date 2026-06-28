@@ -19,6 +19,9 @@ public class RazorpayOrderResponseDto
     public string? MemberName { get; set; }
     public string? MemberEmail { get; set; }
     public string? PlanName { get; set; }
+    public bool UseMockCheckout { get; set; }
+    public string? MockPaymentId { get; set; }
+    public string? MockSignature { get; set; }
 }
 
 public class VerifyRazorpayPaymentDto

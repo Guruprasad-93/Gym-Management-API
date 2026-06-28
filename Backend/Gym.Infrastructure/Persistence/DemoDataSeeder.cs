@@ -1,30 +1,35 @@
-using Gym.Application.DTOs.GymAdmins;
-using Gym.Application.DTOs.Gyms;
-using Gym.Application.DTOs.Members;
-using Gym.Application.DTOs.Memberships;
-using Gym.Application.DTOs.Payments;
-using Gym.Application.DTOs.Trainers;
 using Gym.Application.Interfaces;
-using Gym.Application.Options;
-using Gym.Application.Validation;
-using Gym.Domain.Entities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace Gym.Infrastructure.Persistence;
 
 /// <summary>
-/// Seeds a complete demo tenant for presentations. Idempotent — skips when demo gym already exists.
+/// Seeds a complete demo tenant for MVP presentations.
 /// </summary>
 public static class DemoDataSeeder
 {
     public const string DemoGymName = "FitZone Demo Gym";
-    public const string DemoGymAdminEmail = "admin@fitzone-demo.com";
-    public const string DemoGymAdminLoginIdentifier = "admin";
-    public static readonly Guid DemoGymId = Guid.Parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
+    public const string DemoGymAdminEmail = "priya.sharma@fitzonegym.in";
+    public const string DemoGymAdminLoginIdentifier = "fitzone_admin";
+    public const string DemoTrainer1LoginIdentifier = "fitzone_trainer1";
+    public const string DemoTrainer2LoginIdentifier = "fitzone_trainer2";
+    public const string DemoMember1LoginIdentifier = "fitzone_member001";
+    public const string DemoMember2LoginIdentifier = "fitzone_member002";
+    public static readonly Guid DemoGymId = Guid.Parse("b2edbb38-ee01-4d17-94b6-1b3303807b91");
     public const string DefaultDemoPassword = "Demo@123";
+
+    public static async Task<Guid> ResolveDemoGymIdAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken = default)
+    {
+        using var scope = serviceProvider.CreateScope();
+        var gymRepository = scope.ServiceProvider.GetRequiredService<IGymRepository>();
+        var gyms = await gymRepository.GetAllAsync(cancellationToken);
+        var existingDemo = gyms.FirstOrDefault(g =>
+            string.Equals(g.Name, DemoGymName, StringComparison.OrdinalIgnoreCase));
+        return existingDemo?.Id ?? DemoGymId;
+    }
 
     public static async Task SeedAsync(IServiceProvider serviceProvider)
     {
@@ -37,193 +42,104 @@ public static class DemoDataSeeder
         var logger = services.GetRequiredService<ILogger<ApplicationDbContext>>();
         var gymRepository = services.GetRequiredService<IGymRepository>();
         var demoPassword = configuration["Demo:Password"] ?? DefaultDemoPassword;
+        var resetOnStartup = configuration.GetValue("Demo:ResetOnStartup", false);
+        var forceReseed = configuration.GetValue("Demo:ForceReseed", false);
 
-        var existingGyms = await gymRepository.GetAllAsync();
-        var existingDemo = existingGyms.FirstOrDefault(g =>
-            string.Equals(g.Name, DemoGymName, StringComparison.OrdinalIgnoreCase));
-        if (existingDemo is not null)
+        if (resetOnStartup || forceReseed)
+        {
+            await DemoDatabaseReset.ResetBusinessDataAsync(services, logger);
+        }
+
+        var existingDemo = (await gymRepository.GetAllAsync())
+            .FirstOrDefault(g => string.Equals(g.Name, DemoGymName, StringComparison.OrdinalIgnoreCase));
+
+        if (existingDemo is not null && !resetOnStartup && !forceReseed)
         {
             await EnsureDemoGymHasActiveSubscriptionAsync(services, existingDemo.Id, logger);
-            logger.LogInformation("Demo gym '{GymName}' already exists — skipping demo seed.", DemoGymName);
+            await EnsureDemoGymMenusAsync(services, existingDemo.Id, logger);
+            await EnsureDemoGymAdminAsync(services, existingDemo.Id, demoPassword, logger);
+            await EnsureDemoLoginIdentifiersMigratedAsync(services, existingDemo.Id, logger);
+            logger.LogInformation("Demo gym '{GymName}' already exists — skipping full MVP seed.", DemoGymName);
             return;
         }
 
-        await EnsureSuperAdminAsync(services, configuration, logger);
-
-        var gymId = DemoGymId;
-        await gymRepository.CreateAsync(gymId, new CreateGymDto
-        {
-            Name = DemoGymName,
-            Address = "123 Fitness Avenue, Demo City",
-            Phone = "+1-555-0100",
-            Email = "contact@fitzone-demo.com"
-        });
-        await EnsureDemoGymHasActiveSubscriptionAsync(services, gymId, logger);
-
-        var gymAdminRepository = services.GetRequiredService<IGymAdminRepository>();
-        var userRepository = services.GetRequiredService<IUserRepository>();
-        if (!await userRepository.ExistsByLoginIdentifierAsync(DemoGymAdminLoginIdentifier, gymId))
-        {
-            await gymAdminRepository.CreateAsync(
-                Guid.NewGuid(),
-                gymId,
-                "Demo Gym Admin",
-                DemoGymAdminLoginIdentifier,
-                DemoGymAdminEmail,
-                services.GetRequiredService<IPasswordHasher>().Hash(demoPassword),
-                mustChangePassword: false);
-        }
-
-        var passwordHasher = services.GetRequiredService<IPasswordHasher>();
-        var userRoleRepository = services.GetRequiredService<IUserRoleRepository>();
-        var roleRepository = services.GetRequiredService<IRoleRepository>();
-        var trainerRepository = services.GetRequiredService<ITrainerRepository>();
-        var memberRepository = services.GetRequiredService<IMemberRepository>();
-        var planRepository = services.GetRequiredService<IMembershipPlanRepository>();
-        var membershipRepository = services.GetRequiredService<IMembershipRepository>();
-        var paymentRepository = services.GetRequiredService<IPaymentRepository>();
-
-        var trainerRole = await roleRepository.GetByNameAsync("Trainer");
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-
-        var trainer1 = await CreateTrainerAsync(
-            trainerRepository, userRepository, userRoleRepository, trainerRole,
-            passwordHasher, gymId, "Alex Rivera", "trainer1@fitzone-demo.com", demoPassword,
-            "Strength & Conditioning", "Certified strength coach with 8 years of experience.");
-
-        var trainer2 = await CreateTrainerAsync(
-            trainerRepository, userRepository, userRoleRepository, trainerRole,
-            passwordHasher, gymId, "Sam Patel", "trainer2@fitzone-demo.com", demoPassword,
-            "Cardio & HIIT", "Specializes in fat loss and endurance programs.");
-
-        var monthlyPlan = await planRepository.CreateAsync(gymId, new CreateMembershipPlanDto
-        {
-            PlanName = "Monthly Basic",
-            DurationInMonths = 1,
-            Price = 999m,
-            Description = "Full gym access for 1 month"
-        });
-
-        var quarterlyPlan = await planRepository.CreateAsync(gymId, new CreateMembershipPlanDto
-        {
-            PlanName = "Quarterly Pro",
-            DurationInMonths = 3,
-            Price = 2499m,
-            Description = "Full gym access for 3 months — best value"
-        });
-
-        var annualPlan = await planRepository.CreateAsync(gymId, new CreateMembershipPlanDto
-        {
-            PlanName = "Annual Elite",
-            DurationInMonths = 12,
-            Price = 8999m,
-            Description = "Premium 12-month membership with priority booking"
-        });
-
-        var member1 = await CreateMemberAsync(
-            memberRepository, userRepository, userRoleRepository, roleRepository, passwordHasher, gymId, trainer1.Id, today,
-            "John Smith", "member1@fitzone-demo.com", demoPassword, "Male", "+1-555-1001");
-
-        var member2 = await CreateMemberAsync(
-            memberRepository, userRepository, userRoleRepository, roleRepository, passwordHasher, gymId, trainer1.Id, today,
-            "Jane Doe", "member2@fitzone-demo.com", demoPassword, "Female", "+1-555-1002");
-
-        var member3 = await CreateMemberAsync(
-            memberRepository, userRepository, userRoleRepository, roleRepository, passwordHasher, gymId, trainer2.Id, today,
-            "Mike Wilson", "member3@fitzone-demo.com", demoPassword, "Male", "+1-555-1003");
-
-        var member4 = await CreateMemberAsync(
-            memberRepository, userRepository, userRoleRepository, roleRepository, passwordHasher, gymId, trainer2.Id, today,
-            "Sarah Brown", "member4@fitzone-demo.com", demoPassword, "Female", "+1-555-1004");
-
-        var member5 = await CreateMemberAsync(
-            memberRepository, userRepository, userRoleRepository, roleRepository, passwordHasher, gymId, trainer2.Id, today.AddMonths(-6),
-            "Tom Lee", "member5@fitzone-demo.com", demoPassword, "Male", "+1-555-1005");
-
-        var membership1 = await membershipRepository.CreateAsync(gymId, new CreateMembershipDto
-        {
-            MemberId = member1.Id,
-            MembershipPlanId = monthlyPlan.Id,
-            StartDate = today.AddDays(-10)
-        });
-
-        var membership2 = await membershipRepository.CreateAsync(gymId, new CreateMembershipDto
-        {
-            MemberId = member2.Id,
-            MembershipPlanId = quarterlyPlan.Id,
-            StartDate = today.AddDays(-20)
-        });
-
-        var membership3 = await membershipRepository.CreateAsync(gymId, new CreateMembershipDto
-        {
-            MemberId = member3.Id,
-            MembershipPlanId = monthlyPlan.Id,
-            StartDate = today.AddDays(-5)
-        });
-
-        var membership4 = await membershipRepository.CreateAsync(gymId, new CreateMembershipDto
-        {
-            MemberId = member4.Id,
-            MembershipPlanId = annualPlan.Id,
-            StartDate = today.AddMonths(-1)
-        });
-
-        await membershipRepository.CreateAsync(gymId, new CreateMembershipDto
-        {
-            MemberId = member5.Id,
-            MembershipPlanId = monthlyPlan.Id,
-            StartDate = today.AddMonths(-3),
-            Notes = "Expired demo membership"
-        });
-
-        var paymentDate = DateTime.UtcNow.AddDays(-1);
-        await paymentRepository.CreateAsync(gymId, new CreatePaymentDto
-        {
-            MemberId = member1.Id,
-            MembershipId = membership1.Id,
-            Amount = monthlyPlan.Price,
-            PaymentMethod = "Cash",
-            PaymentDate = paymentDate,
-            TransactionReference = "DEMO-CASH-001"
-        });
-
-        await paymentRepository.CreateAsync(gymId, new CreatePaymentDto
-        {
-            MemberId = member2.Id,
-            MembershipId = membership2.Id,
-            Amount = quarterlyPlan.Price,
-            PaymentMethod = "UPI",
-            PaymentDate = paymentDate,
-            TransactionReference = "DEMO-UPI-002"
-        });
-
-        await paymentRepository.CreateAsync(gymId, new CreatePaymentDto
-        {
-            MemberId = member3.Id,
-            MembershipId = membership3.Id,
-            Amount = monthlyPlan.Price,
-            PaymentMethod = "Card",
-            PaymentDate = paymentDate,
-            TransactionReference = "DEMO-CARD-003"
-        });
-
-        await paymentRepository.CreateAsync(gymId, new CreatePaymentDto
-        {
-            MemberId = member4.Id,
-            MembershipId = membership4.Id,
-            Amount = annualPlan.Price,
-            PaymentMethod = "Bank Transfer",
-            PaymentDate = paymentDate,
-            TransactionReference = "DEMO-BANK-004"
-        });
+        logger.LogInformation("Seeding MVP demo data for '{GymName}'...", DemoGymName);
+        await MvpDemoDataSeeder.SeedAsync(services, DemoGymId, demoPassword, logger);
 
         var superAdminEmail = configuration["Bootstrap:SuperAdminEmail"] ?? "superadmin@gym.com";
         logger.LogInformation(
-            "Demo data seeded for {GymName}. SuperAdmin: {SuperAdminEmail}. GymAdmin: {GymAdminEmail}. Demo password: {DemoPassword}. Trainers: trainer1@fitzone-demo.com, trainer2@fitzone-demo.com. Members: member1@fitzone-demo.com through member5@fitzone-demo.com.",
-            DemoGymName,
+            "MVP demo ready. SuperAdmin: {SuperAdminEmail} / superadmin. GymAdmin: {GymAdminLogin} / {DemoPassword}. Trainers: fitzone_trainer1–5. Members: fitzone_member001–100.",
             superAdminEmail,
-            DemoGymAdminEmail,
+            DemoGymAdminLoginIdentifier,
             demoPassword);
+    }
+
+    private static async Task EnsureDemoGymMenusAsync(
+        IServiceProvider services,
+        Guid gymId,
+        ILogger logger,
+        CancellationToken cancellationToken = default)
+    {
+        var gymMenuService = services.GetRequiredService<IGymMenuService>();
+        await gymMenuService.SeedMenusForGymAsync(gymId, null, cancellationToken);
+        logger.LogDebug("Ensured tenant menus exist for demo gym {GymId}.", gymId);
+    }
+
+    private static async Task EnsureDemoGymAdminAsync(
+        IServiceProvider services,
+        Guid gymId,
+        string demoPassword,
+        ILogger logger)
+    {
+        var gymAdminRepository = services.GetRequiredService<IGymAdminRepository>();
+        var userRepository = services.GetRequiredService<IUserRepository>();
+        if (await userRepository.ExistsByLoginIdentifierAsync(DemoGymAdminLoginIdentifier))
+            return;
+
+        await gymAdminRepository.CreateAsync(
+            Guid.NewGuid(),
+            gymId,
+            "Priya Sharma",
+            DemoGymAdminLoginIdentifier,
+            DemoGymAdminEmail,
+            services.GetRequiredService<IPasswordHasher>().Hash(demoPassword),
+            mustChangePassword: false);
+        logger.LogInformation("Created missing demo gym admin for {GymId}.", gymId);
+    }
+
+    private static async Task EnsureDemoLoginIdentifiersMigratedAsync(
+        IServiceProvider services,
+        Guid gymId,
+        ILogger logger)
+    {
+        var db = services.GetRequiredService<ApplicationDbContext>();
+        var renames = new (string OldId, string NewId)[]
+        {
+            ("admin", DemoGymAdminLoginIdentifier),
+            ("admin@fitzone-demo.com", DemoGymAdminLoginIdentifier),
+            ("trainer1", DemoTrainer1LoginIdentifier),
+            ("EMP001", DemoTrainer1LoginIdentifier),
+            ("trainer2", DemoTrainer2LoginIdentifier),
+            ("MEM000123", "fitzone_member001"),
+            ("member1", "fitzone_member001"),
+            ("fitzone_member1", "fitzone_member001"),
+            ("9876543210", "fitzone_member002"),
+            ("member2", "fitzone_member002"),
+            ("fitzone_member2", "fitzone_member002"),
+        };
+
+        foreach (var (oldId, newId) in renames)
+        {
+            await db.Database.ExecuteSqlRawAsync(@"
+IF NOT EXISTS (SELECT 1 FROM dbo.Users WHERE LoginIdentifier = {0})
+   AND EXISTS (SELECT 1 FROM dbo.Users WHERE GymId = {1} AND LoginIdentifier = {2})
+BEGIN
+    UPDATE dbo.Users SET LoginIdentifier = {0} WHERE GymId = {1} AND LoginIdentifier = {2};
+END",
+                newId, gymId, oldId);
+        }
+
+        logger.LogDebug("Ensured demo gym login identifiers are globally unique for {GymId}.", gymId);
     }
 
     private static async Task EnsureDemoGymHasActiveSubscriptionAsync(
@@ -233,127 +149,17 @@ public static class DemoDataSeeder
         CancellationToken cancellationToken = default)
     {
         var saasRepository = services.GetRequiredService<ISaasSubscriptionRepository>();
-        var settings = services.GetRequiredService<IOptions<SaasSubscriptionSettings>>().Value;
+        var settings = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Gym.Application.Options.SaasSubscriptionSettings>>().Value;
         var limit = await saasRepository.CheckTenantLimitAsync(gymId, "Member", cancellationToken);
-        if (limit.HasAccess)
-            return;
-
-        await saasRepository.CreateTrialSubscriptionAsync(gymId, settings.GracePeriodDays, cancellationToken);
-        logger.LogWarning(
-            "Demo gym subscription was missing or expired for {GymId} — started a new {TrialDays}-day trial.",
-            gymId,
-            settings.TrialDays);
-    }
-
-    private static async Task EnsureSuperAdminAsync(
-        IServiceProvider services,
-        IConfiguration configuration,
-        ILogger logger)
-    {
-        var bootstrapEmail = configuration["Bootstrap:SuperAdminEmail"];
-        var bootstrapPassword = configuration["Bootstrap:SuperAdminPassword"];
-        if (string.IsNullOrWhiteSpace(bootstrapEmail) || string.IsNullOrWhiteSpace(bootstrapPassword))
-            return;
-
-        var userRepository = services.GetRequiredService<IUserRepository>();
-        var email = bootstrapEmail.Trim().ToLowerInvariant();
-        if (await userRepository.GetByEmailAsync(email) is not null)
-            return;
-
-        var roleRepository = services.GetRequiredService<IRoleRepository>();
-        var userRoleRepository = services.GetRequiredService<IUserRoleRepository>();
-        var superAdminRole = await roleRepository.GetByNameAsync("SuperAdmin")
-            ?? throw new InvalidOperationException("SuperAdmin role was not seeded.");
-
-        var user = User.Create(
-            "Super Admin",
-            LoginIdentifierRules.FromEmailLocalPart(email) is { Length: > 0 } id ? id : "superadmin",
-            services.GetRequiredService<IPasswordHasher>().Hash(bootstrapPassword),
-            gymId: null,
-            email: email);
-
-        await userRepository.AddAsync(user);
-        await userRoleRepository.AddAsync(UserRole.Create(user.Id, superAdminRole.Id));
-        logger.LogInformation("Bootstrap Super Admin user created for {Email}.", email);
-    }
-
-    private static async Task<TrainerDto> CreateTrainerAsync(
-        ITrainerRepository trainerRepository,
-        IUserRepository userRepository,
-        IUserRoleRepository userRoleRepository,
-        Role? trainerRole,
-        IPasswordHasher passwordHasher,
-        Guid gymId,
-        string name,
-        string email,
-        string password,
-        string specialization,
-        string bio)
-    {
-        var normalizedEmail = email.Trim().ToLowerInvariant();
-        if (await userRepository.ExistsByEmailAsync(normalizedEmail))
+        if (!limit.HasAccess)
         {
-            var existingUser = await userRepository.GetByEmailAsync(normalizedEmail)
-                ?? throw new InvalidOperationException($"User {email} exists but could not be loaded.");
-            return (await trainerRepository.GetByUserIdAsync(existingUser.Id))
-                ?? throw new InvalidOperationException($"Trainer user {email} exists but trainer profile is missing.");
+            await saasRepository.CreateTrialSubscriptionAsync(gymId, settings.GracePeriodDays, cancellationToken);
+            logger.LogWarning(
+                "Demo gym subscription was missing or expired for {GymId} — started a new trial.",
+                gymId);
         }
 
-        var user = User.Create(name, LoginIdentifierRules.FromEmailLocalPart(normalizedEmail), passwordHasher.Hash(password), gymId, normalizedEmail);
-        await userRepository.AddAsync(user);
-
-        if (trainerRole is not null &&
-            await userRoleRepository.GetAsync(user.Id, trainerRole.Id) is null)
-        {
-            await userRoleRepository.AddAsync(UserRole.Create(user.Id, trainerRole.Id));
-        }
-
-        return await trainerRepository.CreateAsync(gymId, new CreateTrainerDto
-        {
-            UserId = user.Id,
-            Specialization = specialization,
-            Bio = bio
-        });
-    }
-
-    private static async Task<MemberResponseDto> CreateMemberAsync(
-        IMemberRepository memberRepository,
-        IUserRepository userRepository,
-        IUserRoleRepository userRoleRepository,
-        IRoleRepository roleRepository,
-        IPasswordHasher passwordHasher,
-        Guid gymId,
-        int trainerId,
-        DateOnly joinDate,
-        string name,
-        string email,
-        string password,
-        string gender,
-        string phone)
-    {
-        var normalizedEmail = email.Trim().ToLowerInvariant();
-        if (await userRepository.ExistsByEmailAsync(normalizedEmail))
-        {
-            throw new InvalidOperationException($"Demo member email {email} already exists outside demo seed scope.");
-        }
-
-        var user = User.Create(name, LoginIdentifierRules.FromEmailLocalPart(normalizedEmail), passwordHasher.Hash(password), gymId, normalizedEmail);
-        await userRepository.AddAsync(user);
-
-        var memberRole = await roleRepository.GetByNameAsync("Member");
-        if (memberRole is not null &&
-            await userRoleRepository.GetAsync(user.Id, memberRole.Id) is null)
-        {
-            await userRoleRepository.AddAsync(UserRole.Create(user.Id, memberRole.Id));
-        }
-
-        return await memberRepository.CreateAsync(gymId, user.Id, new CreateMemberDto
-        {
-            TrainerId = trainerId,
-            Gender = gender,
-            Phone = phone,
-            JoinDate = joinDate,
-            Address = "Demo City"
-        });
+        await MvpDemoDataSeeder.EnsureDemoEnterpriseSubscriptionForGymAsync(
+            saasRepository, gymId, settings.GracePeriodDays, cancellationToken);
     }
 }

@@ -6,7 +6,7 @@ namespace Gym.Domain.Entities;
 public class User
 {
     public const int MaxNameLength = 100;
-    public const int MaxLoginIdentifierLength = 20;
+    public const int MaxLoginIdentifierLength = 100;
     public const int MaxEmailLength = 256;
     public const int MaxPasswordLength = 500;
 
@@ -44,7 +44,7 @@ public class User
         {
             Id = Guid.NewGuid(),
             Name = name.Trim(),
-            LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(),
+            LoginIdentifier = loginIdentifier.Trim(),
             Email = NormalizeOptionalEmail(email),
             Password = passwordHash,
             GymId = gymId,
@@ -59,7 +59,7 @@ public class User
         ValidateOptionalEmail(email);
 
         Name = name.Trim();
-        LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant();
+        LoginIdentifier = loginIdentifier.Trim();
         Email = NormalizeOptionalEmail(email);
     }
 

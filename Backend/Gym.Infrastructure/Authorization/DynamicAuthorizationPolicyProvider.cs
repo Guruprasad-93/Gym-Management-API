@@ -20,6 +20,13 @@ public class DynamicAuthorizationPolicyProvider : IAuthorizationPolicyProvider
 
         var builder = new AuthorizationPolicyBuilder().RequireAuthenticatedUser();
 
+        if (policyName.StartsWith(RequireFeatureAttribute.PolicyPrefix, StringComparison.Ordinal))
+        {
+            var featureCode = policyName[RequireFeatureAttribute.PolicyPrefix.Length..];
+            builder.AddRequirements(new FeatureRequirement(featureCode));
+            return Task.FromResult<AuthorizationPolicy?>(builder.Build());
+        }
+
         if (policyName.Contains('|', StringComparison.Ordinal))
         {
             var permissions = policyName.Split('|', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

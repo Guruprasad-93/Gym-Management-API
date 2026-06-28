@@ -136,7 +136,7 @@ public class WhiteLabelTests : IClassFixture<WhiteLabelFixture>
     public async Task PlatformDashboard_GymAdmin_Forbidden()
     {
         var response = await _fixture.AdminClient.GetAsync("/api/platform/white-label/dashboard");
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     private sealed class ApiEnvelope<T>

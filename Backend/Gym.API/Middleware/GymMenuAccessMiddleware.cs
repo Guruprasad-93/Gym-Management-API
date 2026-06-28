@@ -17,6 +17,12 @@ public class GymMenuAccessMiddleware
 
     public async Task InvokeAsync(HttpContext context, IGymMenuService menuService, ICurrentUserService currentUser)
     {
+        if (context.Items.ContainsKey(SubscriptionAccessMiddleware.SkipMenuAccessKey))
+        {
+            await _next(context);
+            return;
+        }
+
         if (ShouldCheckMenuAccess(context, currentUser))
         {
             var menuCode = ApiRouteMenuMap.ResolveMenuCode(context.Request.Path);

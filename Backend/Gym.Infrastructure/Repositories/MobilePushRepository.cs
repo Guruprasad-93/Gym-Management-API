@@ -306,6 +306,9 @@ public class MobilePushRepository : IMobilePushRepository
     public Task<IReadOnlyList<MemberPushCandidateRow>> GetAttendanceReminderCandidatesAsync(CancellationToken cancellationToken = default) =>
         QueryCandidates(StoredProcedureNames.GetMembersForAttendancePushReminder, cancellationToken);
 
+    public Task<IReadOnlyList<MemberPushCandidateRow>> GetCheckoutReminderCandidatesAsync(CancellationToken cancellationToken = default) =>
+        QueryCandidates(StoredProcedureNames.GetMembersForCheckoutReminderPush, cancellationToken);
+
     public Task<IReadOnlyList<MemberPushCandidateRow>> GetWorkoutReminderCandidatesAsync(CancellationToken cancellationToken = default) =>
         QueryCandidates(StoredProcedureNames.GetMembersForWorkoutPushReminder, cancellationToken);
 

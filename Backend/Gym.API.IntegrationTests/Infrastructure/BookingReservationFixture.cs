@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using Gym.Infrastructure.Persistence;
 
 namespace Gym.API.IntegrationTests.Infrastructure;
 
@@ -19,9 +20,9 @@ public class BookingReservationFixture : IAsyncLifetime
         AdminClient = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
         MemberClient = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
         TrainerClient = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
-        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(AdminClient, "admin@fitzone-demo.com", "Demo@123");
-        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(MemberClient, "member1@fitzone-demo.com", "Demo@123");
-        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(TrainerClient, "trainer1@fitzone-demo.com", "Demo@123");
+        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(AdminClient, DemoDataSeeder.DemoGymAdminLoginIdentifier, "Demo@123");
+        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(MemberClient, DemoDataSeeder.DemoMember1LoginIdentifier, "Demo@123");
+        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(TrainerClient, DemoDataSeeder.DemoTrainer1LoginIdentifier, "Demo@123");
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

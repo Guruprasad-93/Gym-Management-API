@@ -25,11 +25,11 @@ public class UserRepository : IUserRepository
         return exists;
     }
 
-    public async Task<bool> ExistsByLoginIdentifierAsync(string loginIdentifier, Guid? gymId, CancellationToken cancellationToken = default)
+    public async Task<bool> ExistsByLoginIdentifierAsync(string loginIdentifier, CancellationToken cancellationToken = default)
     {
         var exists = await _sp.QuerySingleOrDefaultAsync<bool>(
             StoredProcedureNames.UserExistsByLoginIdentifier,
-            new { LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(), GymId = gymId },
+            new { LoginIdentifier = loginIdentifier.Trim() },
             cancellationToken);
 
         return exists;
@@ -48,11 +48,11 @@ public class UserRepository : IUserRepository
         return row is null ? null : EntityMapper.ToUser(row);
     }
 
-    public async Task<User?> GetByLoginIdentifierAsync(string loginIdentifier, Guid? gymId, CancellationToken cancellationToken = default)
+    public async Task<User?> GetByLoginIdentifierAsync(string loginIdentifier, CancellationToken cancellationToken = default)
     {
         var row = await _sp.QuerySingleOrDefaultAsync<UserRow>(
             StoredProcedureNames.GetUserByLoginIdentifier,
-            new { LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(), GymId = gymId },
+            new { LoginIdentifier = loginIdentifier.Trim() },
             cancellationToken);
 
         return row is null ? null : EntityMapper.ToUser(row);

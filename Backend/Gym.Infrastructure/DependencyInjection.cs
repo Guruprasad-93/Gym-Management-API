@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
 namespace Gym.Infrastructure;
 
@@ -18,7 +19,8 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IHostEnvironment? environment = null)
     {
         DapperTypeHandlers.Register();
 
@@ -33,6 +35,19 @@ public static class DependencyInjection
         services.Configure<AuthCookieSettings>(configuration.GetSection(AuthCookieSettings.SectionName));
         services.Configure<DatabaseOptions>(configuration.GetSection(DatabaseOptions.SectionName));
         services.Configure<RazorpaySettings>(configuration.GetSection(RazorpaySettings.SectionName));
+        if (environment?.IsDevelopment() == true)
+        {
+            services.PostConfigure<RazorpaySettings>(options =>
+            {
+                if (!options.Enabled && string.IsNullOrWhiteSpace(options.KeyId))
+                {
+                    options.Enabled = true;
+                    options.UseMockGateway = true;
+                    options.KeyId = "rzp_test_mock";
+                    options.KeySecret = MockRazorpayGateway.DevKeySecret;
+                }
+            });
+        }
         services.Configure<SaasSubscriptionSettings>(configuration.GetSection(SaasSubscriptionSettings.SectionName));
 
         services.AddScoped<IAuthCookieService, AuthCookieService>();
@@ -58,11 +73,30 @@ public static class DependencyInjection
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<INotificationRepository, NotificationRepository>();
         services.AddScoped<IInvoicePdfGenerator, InvoicePdfGenerator>();
-        services.AddHttpClient<IRazorpayGateway, RazorpayGateway>();
         services.AddHttpClient<IWhatsAppProvider, WhatsAppProvider>();
+        var razorpaySettings = configuration.GetSection(RazorpaySettings.SectionName).Get<RazorpaySettings>() ?? new RazorpaySettings();
+        if (environment?.IsDevelopment() == true
+            && !razorpaySettings.Enabled
+            && string.IsNullOrWhiteSpace(razorpaySettings.KeyId))
+        {
+            razorpaySettings.Enabled = true;
+            razorpaySettings.UseMockGateway = true;
+            razorpaySettings.KeyId = "rzp_test_mock";
+            razorpaySettings.KeySecret = MockRazorpayGateway.DevKeySecret;
+        }
+
+        if (razorpaySettings.UseMockGateway)
+        {
+            services.AddSingleton<IRazorpayGateway>(_ => new MockRazorpayGateway());
+        }
+        else
+        {
+            services.AddHttpClient<IRazorpayGateway, RazorpayGateway>();
+        }
         services.Configure<WhatsAppSettings>(configuration.GetSection(WhatsAppSettings.SectionName));
         services.AddHostedService<BackgroundJobs.NotificationBackgroundJob>();
         services.AddHostedService<BackgroundJobs.SaasSubscriptionBackgroundJob>();
+        services.AddHostedService<BackgroundJobs.SubscriptionExpiryNotificationBackgroundJob>();
         services.AddHostedService<BackgroundJobs.LeadReminderBackgroundJob>();
         services.AddScoped<ILeadRepository, LeadRepository>();
         services.AddScoped<ILeadReportExporter, LeadReportExporter>();
@@ -83,6 +117,7 @@ public static class DependencyInjection
         services.AddScoped<IAnalyticsRepository, AnalyticsRepository>();
         services.AddScoped<IAnalyticsReportExporter, AnalyticsReportExporter>();
         services.AddScoped<ISaasSubscriptionRepository, SaasSubscriptionRepository>();
+        services.AddScoped<ISubscriptionNotificationRepository, SubscriptionNotificationRepository>();
         services.AddScoped<IFileRepository, FileRepository>();
         services.AddScoped<IMemberSelfServiceRepository, MemberSelfServiceRepository>();
         services.AddScoped<IMemberSelfServiceReportExporter, MemberSelfServiceReportExporter>();
@@ -109,7 +144,10 @@ public static class DependencyInjection
         services.AddScoped<IWebsiteReportExporter, WebsiteReportExporter>();
         services.AddScoped<IWhiteLabelRepository, WhiteLabelRepository>();
         services.AddScoped<IGymMenuRepository, GymMenuRepository>();
+        services.AddScoped<IFeatureRepository, FeatureRepository>();
+        services.AddScoped<IPlanManagementRepository, PlanManagementRepository>();
         services.AddHostedService<BackgroundJobs.BookingReminderBackgroundJob>();
+        services.AddHostedService<BackgroundJobs.AttendanceAutoCheckoutBackgroundJob>();
         services.AddScoped<IQrCodeGenerator, QrCodeGeneratorService>();
         services.AddScoped<IFileValidator, FileValidator>();
         services.AddScoped<IImageProcessor, ImageProcessor>();
@@ -127,6 +165,7 @@ public static class DependencyInjection
 
         services.AddSingleton<IAuthorizationHandler, PermissionAuthorizationHandler>();
         services.AddSingleton<IAuthorizationHandler, AnyPermissionAuthorizationHandler>();
+        services.AddScoped<IAuthorizationHandler, FeatureAuthorizationHandler>();
         services.AddSingleton<IAuthorizationPolicyProvider, DynamicAuthorizationPolicyProvider>();
 
         return services;

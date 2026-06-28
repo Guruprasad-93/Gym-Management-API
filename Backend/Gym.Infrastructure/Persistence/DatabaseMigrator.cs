@@ -48,16 +48,27 @@ public static class DatabaseMigrator
                     if (string.IsNullOrWhiteSpace(batch))
                         continue;
 
-                    await using var command = connection.CreateCommand();
-                    command.CommandText = batch;
-                    command.CommandTimeout = 120;
-                    await command.ExecuteNonQueryAsync(cancellationToken);
+                    try
+                    {
+                        await using var command = connection.CreateCommand();
+                        command.CommandText = batch;
+                        command.CommandTimeout = 120;
+                        await command.ExecuteNonQueryAsync(cancellationToken);
+                    }
+                    catch (Exception ex)
+                    {
+                        throw new InvalidOperationException(
+                            $"SQL migration script '{scriptName}' failed. See inner exception for batch details.",
+                            ex);
+                    }
                 }
 
                 await RecordScriptAppliedAsync(connection, scriptName, cancellationToken);
                 appliedScripts.Add(scriptName);
                 logger.LogInformation("Applied SQL script {Script}.", scriptName);
             }
+
+            await ValidateCriticalSchemaAsync(connection, cancellationToken);
         }
         finally
         {
@@ -167,5 +178,35 @@ public static class DatabaseMigrator
 
         if (batch.Length > 0)
             yield return batch.ToString();
+    }
+
+    private static async Task ValidateCriticalSchemaAsync(
+        System.Data.Common.DbConnection connection,
+        CancellationToken cancellationToken)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            IF COL_LENGTH(N'dbo.Users', N'LoginIdentifier') IS NULL
+                THROW 51061, 'Critical schema validation failed: Users.LoginIdentifier column is missing.', 1;
+
+            IF EXISTS (
+                SELECT 1
+                FROM sys.columns
+                WHERE object_id = OBJECT_ID(N'dbo.Users')
+                  AND name = N'Email'
+                  AND is_nullable = 0
+            )
+                THROW 51062, 'Critical schema validation failed: Users.Email is still NOT NULL.', 1;
+
+            IF NOT EXISTS (
+                SELECT 1 FROM sys.procedures WHERE name = N'sp_LoginUser'
+            )
+                THROW 51063, 'Critical schema validation failed: sp_LoginUser is missing.', 1;
+
+            IF OBJECT_ID(N'dbo.Members', N'U') IS NOT NULL
+               AND COL_LENGTH(N'dbo.Members', N'IsDeleted') IS NULL
+                THROW 51064, 'Critical schema validation failed: Members.IsDeleted column is missing.', 1;
+            """;
+        await command.ExecuteNonQueryAsync(cancellationToken);
     }
 }

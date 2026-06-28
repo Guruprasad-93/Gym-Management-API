@@ -6,14 +6,21 @@
 
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+
+IF COL_LENGTH('dbo.Users', 'LoginIdentifier') IS NULL
+BEGIN
+    ALTER TABLE dbo.Users ADD LoginIdentifier NVARCHAR(20) NULL;
+END
+GO
+
+IF OBJECT_ID(N'dbo.Members', N'U') IS NOT NULL AND COL_LENGTH('dbo.Members', 'IsDeleted') IS NULL
+    ALTER TABLE dbo.Members ADD IsDeleted BIT NOT NULL CONSTRAINT DF_Members_IsDeleted_051 DEFAULT (0) WITH VALUES;
+GO
 
 BEGIN TRY
     BEGIN TRANSACTION;
-
-    IF COL_LENGTH('dbo.Users', 'LoginIdentifier') IS NULL
-    BEGIN
-        ALTER TABLE dbo.Users ADD LoginIdentifier NVARCHAR(20) NULL;
-    END
 
     /* Backfill from email local-part before making Email nullable */
     ;WITH Source AS (
@@ -69,7 +76,16 @@ BEGIN TRY
     IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_Users_Email' AND object_id = OBJECT_ID('dbo.Users'))
         DROP INDEX IX_Users_Email ON dbo.Users;
 
-    ALTER TABLE dbo.Users ALTER COLUMN Email NVARCHAR(256) NULL;
+    IF EXISTS (
+        SELECT 1
+        FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'dbo.Users')
+          AND name = N'Email'
+          AND is_nullable = 0
+    )
+    BEGIN
+        ALTER TABLE dbo.Users ALTER COLUMN Email NVARCHAR(256) NULL;
+    END
 
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Users_Email_NotNull' AND object_id = OBJECT_ID('dbo.Users'))
         CREATE UNIQUE INDEX UX_Users_Email_NotNull ON dbo.Users(Email) WHERE Email IS NOT NULL;
@@ -79,6 +95,39 @@ BEGIN TRY
 
     IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'UX_Users_LoginIdentifier_Platform' AND object_id = OBJECT_ID('dbo.Users'))
         CREATE UNIQUE INDEX UX_Users_LoginIdentifier_Platform ON dbo.Users(LoginIdentifier) WHERE GymId IS NULL;
+
+    IF COL_LENGTH('dbo.Users', 'LoginIdentifier') IS NULL
+        THROW 51051, 'Migration 051 validation failed: Users.LoginIdentifier column was not created.', 1;
+
+    IF EXISTS (
+        SELECT 1
+        FROM sys.columns
+        WHERE object_id = OBJECT_ID(N'dbo.Users')
+          AND name = N'Email'
+          AND is_nullable = 0
+    )
+        THROW 51052, 'Migration 051 validation failed: Users.Email is still NOT NULL.', 1;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.Users')
+          AND name = N'UX_Users_Email_NotNull'
+    )
+        THROW 51053, 'Migration 051 validation failed: UX_Users_Email_NotNull was not created.', 1;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.Users')
+          AND name = N'UX_Users_GymId_LoginIdentifier'
+    )
+        THROW 51054, 'Migration 051 validation failed: UX_Users_GymId_LoginIdentifier was not created.', 1;
+
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE object_id = OBJECT_ID(N'dbo.Users')
+          AND name = N'UX_Users_LoginIdentifier_Platform'
+    )
+        THROW 51055, 'Migration 051 validation failed: UX_Users_LoginIdentifier_Platform was not created.', 1;
 
     COMMIT TRANSACTION;
 END TRY

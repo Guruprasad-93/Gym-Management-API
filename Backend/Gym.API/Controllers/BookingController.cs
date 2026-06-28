@@ -2,6 +2,7 @@ using Gym.Application.Authorization;
 using Gym.Application.Constants;
 using Gym.Application.DTOs.Booking;
 using Gym.Application.DTOs.Common;
+using Gym.Application.DTOs.MemberSelfService;
 using Gym.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -93,6 +94,14 @@ public class SchedulesController : ControllerBase
         return Ok(ApiResponse<PagedResultDto<ClassScheduleDto>>.Ok(result));
     }
 
+    [HttpGet("{id:int}")]
+    [RequirePermission(Permissions.ViewBookings)]
+    public async Task<ActionResult<ApiResponse<ClassScheduleDto>>> GetById(int id, CancellationToken cancellationToken)
+    {
+        var result = await _bookingService.GetScheduleByIdAsync(id, cancellationToken);
+        return Ok(ApiResponse<ClassScheduleDto>.Ok(result));
+    }
+
     [HttpPost]
     [RequirePermission(Permissions.ManageSchedules)]
     public async Task<ActionResult<ApiResponse<ClassScheduleDto>>> Create([FromBody] CreateClassScheduleDto dto, CancellationToken cancellationToken)
@@ -115,7 +124,7 @@ public class SchedulesController : ControllerBase
     public async Task<ActionResult<ApiResponse<object>>> Delete(int id, CancellationToken cancellationToken)
     {
         await _bookingService.DeleteScheduleAsync(id, cancellationToken);
-        return Ok(ApiResponse<object>.Ok(null!, "Schedule cancelled."));
+        return Ok(ApiResponse<object>.Ok(null!, "Schedule deleted."));
     }
 }
 
@@ -180,9 +189,9 @@ public class BookingCheckInController : ControllerBase
 
     [HttpPost]
     [RequirePermission(Permissions.ManageBookings)]
-    public async Task<ActionResult<ApiResponse<int>>> CheckIn([FromBody] BookingCheckInDto dto, CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<QrScanResultDto>>> CheckIn([FromBody] BookingCheckInDto dto, CancellationToken cancellationToken)
     {
-        var bookingId = await _bookingService.CheckInAsync(dto, cancellationToken);
-        return Ok(ApiResponse<int>.Ok(bookingId, "Check-in successful."));
+        var result = await _bookingService.CheckInAsync(dto, cancellationToken);
+        return Ok(ApiResponse<QrScanResultDto>.Ok(result, "Check-in successful."));
     }
 }

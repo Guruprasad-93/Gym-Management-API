@@ -11,6 +11,7 @@ namespace Gym.API.Controllers;
 [ApiController]
 [Route("api/website")]
 [Authorize]
+[RequireFeature("WEBSITE_BUILDER")]
 public class WebsiteSettingsController : ControllerBase
 {
     private readonly IWebsiteService _websiteService;
@@ -49,11 +50,17 @@ public class WebsiteSettingsController : ControllerBase
         await _websiteService.UnpublishAsync(cancellationToken);
         return Ok(ApiResponse<object>.Ok(null!, "Website unpublished."));
     }
+
+    [HttpGet("preview/{gymSlug}")]
+    [RequirePermission(Permissions.ViewWebsiteBuilder)]
+    public async Task<ActionResult<ApiResponse<PublicWebsiteDto>>> GetPreview(string gymSlug, CancellationToken cancellationToken) =>
+        Ok(ApiResponse<PublicWebsiteDto>.Ok(await _websiteService.GetWebsitePreviewAsync(gymSlug, cancellationToken)));
 }
 
 [ApiController]
 [Route("api/website/pages")]
 [Authorize]
+[RequireFeature("WEBSITE_BUILDER")]
 public class WebsitePagesController : ControllerBase
 {
     private readonly IWebsiteService _websiteService;
@@ -90,6 +97,7 @@ public class WebsitePagesController : ControllerBase
 [ApiController]
 [Route("api/website/sections")]
 [Authorize]
+[RequireFeature("WEBSITE_BUILDER")]
 public class WebsiteSectionsController : ControllerBase
 {
     private readonly IWebsiteService _websiteService;
@@ -126,6 +134,7 @@ public class WebsiteSectionsController : ControllerBase
 [ApiController]
 [Route("api/website/testimonials")]
 [Authorize]
+[RequireFeature("WEBSITE_BUILDER")]
 public class WebsiteTestimonialsController : ControllerBase
 {
     private readonly IWebsiteService _websiteService;
@@ -162,6 +171,7 @@ public class WebsiteTestimonialsController : ControllerBase
 [ApiController]
 [Route("api/website/gallery")]
 [Authorize]
+[RequireFeature("WEBSITE_BUILDER")]
 public class WebsiteGalleryController : ControllerBase
 {
     private readonly IWebsiteService _websiteService;
@@ -199,6 +209,7 @@ public class WebsiteGalleryController : ControllerBase
 [ApiController]
 [Route("api/website/leads")]
 [Authorize]
+[RequireFeature("WEBSITE_BUILDER")]
 public class WebsiteLeadsController : ControllerBase
 {
     private readonly IWebsiteService _websiteService;
@@ -215,6 +226,7 @@ public class WebsiteLeadsController : ControllerBase
 [ApiController]
 [Route("api/website/analytics")]
 [Authorize]
+[RequireFeature("WEBSITE_BUILDER")]
 public class WebsiteAnalyticsController : ControllerBase
 {
     private readonly IWebsiteService _websiteService;

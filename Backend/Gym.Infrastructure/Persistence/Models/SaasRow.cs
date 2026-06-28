@@ -5,11 +5,20 @@ internal sealed class SaasPlanRow
     public int SaasPlanId { get; set; }
     public string PlanCode { get; set; } = string.Empty;
     public string PlanName { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public bool IsTrialPlan { get; set; }
+    public bool IsPublic { get; set; } = true;
     public int MaxMembers { get; set; }
     public int MaxTrainers { get; set; }
+    public int MaxBranches { get; set; }
+    public int MaxStorageGB { get; set; }
+    public int MaxSmsPerMonth { get; set; }
+    public int MaxWhatsappMessages { get; set; }
     public int StorageLimitMb { get; set; }
     public int WhatsAppNotificationLimit { get; set; }
     public decimal MonthlyPrice { get; set; }
+    public decimal QuarterlyPrice { get; set; }
+    public decimal HalfYearlyPrice { get; set; }
     public decimal YearlyPrice { get; set; }
     public int TrialDays { get; set; }
     public bool IsActive { get; set; }
@@ -27,6 +36,9 @@ internal sealed class GymSubscriptionRow
     public decimal Amount { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? BillingCycle { get; set; }
+    public int? PricingOptionId { get; set; }
+    public int? DurationValue { get; set; }
+    public string? DurationUnit { get; set; }
     public DateTime? TrialEndsAt { get; set; }
     public DateTime? CurrentPeriodStart { get; set; }
     public DateTime? CurrentPeriodEnd { get; set; }
@@ -87,7 +99,12 @@ internal sealed class SaasPendingPaymentRow
     public int SaasPlanId { get; set; }
     public decimal Amount { get; set; }
     public string BillingCycle { get; set; } = string.Empty;
+    public int? PricingOptionId { get; set; }
+    public int? DurationValue { get; set; }
+    public string? DurationUnit { get; set; }
+    public decimal? PricingOptionPrice { get; set; }
     public string? RazorpayOrderId { get; set; }
     public string Status { get; set; } = string.Empty;
     public string PlanName { get; set; } = string.Empty;
+    public bool IsTrialPlan { get; set; }
 }

@@ -154,6 +154,12 @@ public static class StoredProcedureNames
     public const string SaasGetPlatformDashboard = "dbo.sp_Saas_GetPlatformDashboard";
     public const string SaasExpireSubscriptions = "dbo.sp_Saas_ExpireSubscriptions";
     public const string SaasSeedNotificationSettings = "dbo.sp_Saas_SeedNotificationSettings";
+    public const string UserInAppNotificationCreate = "dbo.sp_UserInAppNotification_Create";
+    public const string UserInAppNotificationsGetForUser = "dbo.sp_UserInAppNotifications_GetForUser";
+    public const string UserInAppNotificationsGetUnreadCount = "dbo.sp_UserInAppNotifications_GetUnreadCount";
+    public const string UserInAppNotificationsMarkRead = "dbo.sp_UserInAppNotifications_MarkRead";
+    public const string SubscriptionExpiryGetActiveSubscriptions = "dbo.sp_SubscriptionExpiry_GetActiveSubscriptions";
+    public const string SubscriptionExpiryGetGymTenantUsers = "dbo.sp_SubscriptionExpiry_GetGymTenantUsers";
     public const string GymUpdateBranding = "dbo.sp_Gym_UpdateBranding";
 
     // Attendance
@@ -171,6 +177,11 @@ public static class StoredProcedureNames
     public const string TrainerAttendanceCheckOut = "dbo.sp_TrainerAttendance_CheckOut";
     public const string GetTrainerAttendanceByDateRange = "dbo.sp_GetTrainerAttendanceByDateRange";
     public const string GetAttendanceDashboard = "dbo.sp_GetAttendanceDashboard";
+    public const string GetAttendanceSettings = "dbo.sp_GetAttendanceSettings";
+    public const string UpsertAttendanceSettings = "dbo.sp_UpsertAttendanceSettings";
+    public const string ProcessAttendanceAutoCheckout = "dbo.sp_ProcessAttendanceAutoCheckout";
+    public const string GetMemberTodayVisit = "dbo.sp_GetMemberTodayVisit";
+    public const string GetForgotCheckOutReport = "dbo.sp_GetForgotCheckOutReport";
     public const string AuditLogInsert = "dbo.sp_AuditLog_Insert";
     public const string SearchAuditLogs = "dbo.sp_SearchAuditLogs";
     public const string GetAuditLogSummary = "dbo.sp_GetAuditLogSummary";
@@ -389,6 +400,7 @@ public static class StoredProcedureNames
     public const string SearchPushNotificationCampaigns = "dbo.sp_SearchPushNotificationCampaigns";
     public const string GetMembershipsExpiringForPush = "dbo.sp_GetMembershipsExpiringForPush";
     public const string GetMembersForAttendancePushReminder = "dbo.sp_GetMembersForAttendancePushReminder";
+    public const string GetMembersForCheckoutReminderPush = "dbo.sp_GetMembersForCheckoutReminderPush";
     public const string GetMembersForWorkoutPushReminder = "dbo.sp_GetMembersForWorkoutPushReminder";
     public const string GetMembersForDietPushReminder = "dbo.sp_GetMembersForDietPushReminder";
     public const string GetMembersForGoalPushReminder = "dbo.sp_GetMembersForGoalPushReminder";
@@ -462,7 +474,9 @@ public static class StoredProcedureNames
     public const string SearchWebsiteLeadCaptures = "dbo.sp_SearchWebsiteLeadCaptures";
     public const string ConvertWebsiteLeadCapture = "dbo.sp_ConvertWebsiteLeadCapture";
     public const string GetPublicWebsiteBySlug = "dbo.sp_GetPublicWebsiteBySlug";
+    public const string GetWebsiteBySlugForPreview = "dbo.sp_GetWebsiteBySlugForPreview";
     public const string GetGymIdByWebsiteSlug = "dbo.sp_GetGymIdByWebsiteSlug";
+    public const string GetGymIdByWebsiteSlugAny = "dbo.sp_GetGymIdByWebsiteSlugAny";
     public const string GetWebsiteAnalyticsOverview = "dbo.sp_GetWebsiteAnalyticsOverview";
     public const string GetWebsiteNotificationRecipients = "dbo.sp_GetWebsiteNotificationRecipients";
 
@@ -489,4 +503,28 @@ public static class StoredProcedureNames
     public const string GymMenuSetEnabled = "dbo.sp_GymMenu_SetEnabled";
     public const string GymMenuBulkSetEnabled = "dbo.sp_GymMenu_BulkSetEnabled";
     public const string GymMenuSeedForGym = "dbo.sp_GymMenu_SeedForGym";
+
+    public const string FeatureGetAll = "dbo.sp_Feature_GetAll";
+    public const string FeatureGetMenuCodes = "dbo.sp_Feature_GetMenuCodes";
+    public const string FeatureGetApiRoutes = "dbo.sp_Feature_GetApiRoutes";
+    public const string FeatureGetDependencies = "dbo.sp_Feature_GetDependencies";
+    public const string GymGetEnabledFeatureCodes = "dbo.sp_Gym_GetEnabledFeatureCodes";
+    public const string GymGetVisibleMenuCodes = "dbo.sp_Gym_GetVisibleMenuCodes";
+    public const string PlanQuotaGetByPlanId = "dbo.sp_PlanQuota_GetByPlanId";
+    public const string PlanQuotaUpsert = "dbo.sp_PlanQuota_Upsert";
+    public const string PlanFeatureGetByPlanId = "dbo.sp_PlanFeature_GetByPlanId";
+    public const string PlanFeatureSetForPlan = "dbo.sp_PlanFeature_SetForPlan";
+    public const string PlanPricingGetByPlanId = "dbo.sp_PlanPricing_GetByPlanId";
+    public const string PlanPricingGetById = "dbo.sp_PlanPricing_GetById";
+    public const string PlanPricingCreate = "dbo.sp_PlanPricing_Create";
+    public const string PlanPricingUpdate = "dbo.sp_PlanPricing_Update";
+    public const string PlanPricingDelete = "dbo.sp_PlanPricing_Delete";
+    public const string SaasPlatformCreatePlan = "dbo.sp_Saas_Platform_CreatePlan";
+    public const string SaasPlatformUpdatePlan = "dbo.sp_Saas_Platform_UpdatePlan";
+    public const string SaasPlatformDeletePlan = "dbo.sp_Saas_Platform_DeletePlan";
+    public const string SaasPlatformGetPlanDetail = "dbo.sp_Saas_Platform_GetPlanDetail";
+    public const string SaasPlatformListPlans = "dbo.sp_Saas_Platform_ListPlans";
+    public const string SaasPlatformClonePlan = "dbo.sp_Saas_Platform_ClonePlan";
+    public const string PlanPricingReorder = "dbo.sp_PlanPricing_Reorder";
+    public const string SaasGetPlanCatalog = "dbo.sp_Saas_GetPlanCatalog";
 }

@@ -2,6 +2,7 @@ using System.Data;
 using Dapper;
 using Gym.Application.DTOs.Attendance;
 using Gym.Application.DTOs.Common;
+using Gym.Application.DTOs.MemberSelfService;
 using Gym.Application.Interfaces;
 using Gym.Infrastructure.Persistence;
 using Gym.Infrastructure.Persistence.Models;
@@ -46,20 +47,69 @@ public class AttendanceRepository : IAttendanceRepository
     }
 
     public async Task<MemberAttendanceDto> CheckOutMemberAsync(
-        Guid gymId, int memberId, Guid? markedByUserId, string? notes,
+        Guid gymId, int? memberId, int? memberAttendanceId, string checkoutType, Guid? markedByUserId, string? notes,
         CancellationToken cancellationToken = default)
     {
         var parameters = new DynamicParameters();
         parameters.Add("@GymId", gymId);
         parameters.Add("@MemberId", memberId);
+        parameters.Add("@TargetAttendanceId", memberAttendanceId);
         parameters.Add("@MarkedByUserId", markedByUserId);
         parameters.Add("@Notes", notes);
+        parameters.Add("@CheckoutType", checkoutType);
         parameters.Add("@MemberAttendanceId", dbType: DbType.Int32, direction: ParameterDirection.Output);
 
         var id = await _sp.ExecuteWithOutputAsync<int>(
             StoredProcedureNames.MemberAttendanceCheckOut, parameters, "@MemberAttendanceId", cancellationToken);
 
         return (await GetMemberAttendanceByIdAsync(id, gymId, null, cancellationToken))!;
+    }
+
+    public async Task<AttendanceSettingsDto> GetSettingsAsync(Guid gymId, CancellationToken cancellationToken = default)
+    {
+        var row = await _sp.QuerySingleOrDefaultAsync<AttendanceSettingsRow>(
+            StoredProcedureNames.GetAttendanceSettings,
+            new { GymId = gymId },
+            cancellationToken)
+            ?? throw new KeyNotFoundException("Attendance settings not found.");
+
+        return MapSettings(row);
+    }
+
+    public Task UpdateSettingsAsync(Guid gymId, UpdateAttendanceSettingsDto dto, CancellationToken cancellationToken = default) =>
+        _sp.ExecuteAsync(
+            StoredProcedureNames.UpsertAttendanceSettings,
+            new
+            {
+                GymId = gymId,
+                OpeningTime = dto.OpeningTime.ToTimeSpan(),
+                ClosingTime = dto.ClosingTime.ToTimeSpan(),
+                dto.AutoCheckoutEnabled,
+                dto.UseClosingTimeForAutoCheckout,
+                dto.CheckoutReminderMinutesBefore,
+                dto.TimeZoneId,
+                dto.Is24Hours,
+                dto.MaximumSessionHours
+            },
+            cancellationToken);
+
+    public async Task<int> ProcessAutoCheckoutAsync(CancellationToken cancellationToken = default)
+    {
+        var parameters = new DynamicParameters();
+        parameters.Add("@ProcessedCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
+        await _sp.ExecuteAsync(StoredProcedureNames.ProcessAttendanceAutoCheckout, parameters, cancellationToken);
+        return parameters.Get<int>("@ProcessedCount");
+    }
+
+    public async Task<MemberTodayVisitDto?> GetMemberTodayVisitAsync(
+        Guid gymId, int memberId, CancellationToken cancellationToken = default)
+    {
+        var row = await _sp.QuerySingleOrDefaultAsync<MemberTodayVisitRow>(
+            StoredProcedureNames.GetMemberTodayVisit,
+            new { GymId = gymId, MemberId = memberId },
+            cancellationToken);
+
+        return row is null ? null : MapTodayVisit(row);
     }
 
     public async Task<MemberAttendanceDto> MarkMemberAsync(
@@ -107,6 +157,8 @@ public class AttendanceRepository : IAttendanceRepository
         parameters.Add("@FromDate", from.ToDateTime(TimeOnly.MinValue));
         parameters.Add("@ToDate", to.ToDateTime(TimeOnly.MinValue));
         parameters.Add("@StatusId", query.StatusId);
+        parameters.Add("@OpenOnly", query.OpenOnly ?? false);
+        parameters.Add("@CheckoutTypeFilter", query.CheckoutTypeFilter);
         parameters.Add("@Search", query.Search);
         parameters.Add("@PageNumber", query.PageNumber);
         parameters.Add("@PageSize", query.PageSize);
@@ -149,19 +201,68 @@ public class AttendanceRepository : IAttendanceRepository
                 TotalActiveMembers = row.TotalActiveMembers,
                 MembersPresentToday = row.MembersPresentToday,
                 CurrentlyCheckedIn = row.CurrentlyCheckedIn,
-                AbsentToday = row.AbsentToday
+                AbsentToday = row.AbsentToday,
+                CheckedOutToday = row.CheckedOutToday,
+                AutoCheckedOutToday = row.AutoCheckedOutToday,
+                ManualCheckOutToday = row.ManualCheckOutToday
             };
     }
 
+    public async Task<PagedResultDto<ForgotCheckOutReportItemDto>> GetForgotCheckOutReportAsync(
+        Guid? gymId, ForgotCheckOutReportQueryDto query, CancellationToken cancellationToken = default)
+    {
+        var from = query.FromDate ?? DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-30));
+        var to = query.ToDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+
+        var parameters = new DynamicParameters();
+        parameters.Add("@GymId", gymId);
+        parameters.Add("@BranchId", query.BranchId);
+        parameters.Add("@MemberId", query.MemberId);
+        parameters.Add("@FromDate", from.ToDateTime(TimeOnly.MinValue));
+        parameters.Add("@ToDate", to.ToDateTime(TimeOnly.MinValue));
+        parameters.Add("@PageNumber", query.PageNumber);
+        parameters.Add("@PageSize", query.PageSize);
+        parameters.Add("@TotalCount", dbType: DbType.Int32, direction: ParameterDirection.Output);
+
+        var rows = await _sp.QueryAsync<ForgotCheckOutReportRow>(
+            StoredProcedureNames.GetForgotCheckOutReport, parameters, cancellationToken);
+
+        return new PagedResultDto<ForgotCheckOutReportItemDto>
+        {
+            Items = rows.Select(r => new ForgotCheckOutReportItemDto
+            {
+                MemberId = r.MemberId,
+                MemberName = r.MemberName,
+                BranchId = r.BranchId,
+                BranchName = r.BranchName,
+                TotalAutoCheckOutCount = r.TotalAutoCheckOutCount,
+                LastAutoCheckOutAt = r.LastAutoCheckOutAt,
+                LastAutoCheckOutDate = r.LastAutoCheckOutDate.HasValue
+                    ? DateOnly.FromDateTime(r.LastAutoCheckOutDate.Value)
+                    : null
+            }).ToList(),
+            TotalCount = parameters.Get<int>("@TotalCount"),
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize
+        };
+    }
+
     public async Task<DailyAttendanceReportDto> GetDailyReportAsync(
-        Guid? gymId, int? trainerId, DateOnly reportDate,
+        Guid? gymId, int? trainerId, DateOnly reportDate, bool openOnly, string? checkoutTypeFilter,
         CancellationToken cancellationToken = default)
     {
         using var connection = _connectionFactory.CreateConnection();
         using var multi = await connection.QueryMultipleAsync(
             new CommandDefinition(
                 StoredProcedureNames.GetDailyAttendanceReport,
-                new { GymId = gymId, TrainerId = trainerId, ReportDate = reportDate.ToDateTime(TimeOnly.MinValue) },
+                new
+                {
+                    GymId = gymId,
+                    TrainerId = trainerId,
+                    ReportDate = reportDate.ToDateTime(TimeOnly.MinValue),
+                    OpenOnly = openOnly,
+                    CheckoutTypeFilter = checkoutTypeFilter
+                },
                 commandType: CommandType.StoredProcedure,
                 cancellationToken: cancellationToken));
 
@@ -298,8 +399,37 @@ public class AttendanceRepository : IAttendanceRepository
         AttendanceDate = DateOnly.FromDateTime(r.AttendanceDate),
         CheckInAt = r.CheckInAt,
         CheckOutAt = r.CheckOutAt,
+        CheckoutType = r.CheckoutType,
+        IsAutoCheckout = r.IsAutoCheckout,
+        IsCurrentlyCheckedIn = r.CheckOutAt is null && r.StatusCode == "CHECKED_IN",
+        MarkedByName = r.MarkedByName,
         Notes = r.Notes,
         CreatedAt = r.CreatedAt
+    };
+
+    private static AttendanceSettingsDto MapSettings(AttendanceSettingsRow r) => new()
+    {
+        GymId = r.GymId,
+        OpeningTime = TimeOnly.FromTimeSpan(r.OpeningTime),
+        ClosingTime = TimeOnly.FromTimeSpan(r.ClosingTime),
+        AutoCheckoutEnabled = r.AutoCheckoutEnabled,
+        UseClosingTimeForAutoCheckout = r.UseClosingTimeForAutoCheckout,
+        CheckoutReminderMinutesBefore = r.CheckoutReminderMinutesBefore,
+        TimeZoneId = r.TimeZoneId,
+        Is24Hours = r.Is24Hours,
+        MaximumSessionHours = r.MaximumSessionHours
+    };
+
+    private static MemberTodayVisitDto MapTodayVisit(MemberTodayVisitRow r) => new()
+    {
+        CheckInAt = r.CheckInAt,
+        CheckOutAt = r.CheckOutAt,
+        StatusCode = r.StatusCode,
+        StatusName = r.StatusName,
+        CheckoutType = r.CheckoutType,
+        IsAutoCheckout = r.IsAutoCheckout,
+        IsCurrentlyCheckedIn = r.IsCurrentlyCheckedIn,
+        CheckedOutByName = r.CheckedOutByName
     };
 
     private static TrainerAttendanceDto MapTrainer(TrainerAttendanceRow r) => new()

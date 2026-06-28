@@ -3,4 +3,4 @@ using MediatR;
 
 namespace Gym.Application.Features.Auth.Commands.Login;
 
-public record LoginCommand(string LoginIdentifier, string Password, Guid? GymId = null) : IRequest<LoginResponseDto>;
+public record LoginCommand(string LoginIdentifier, string Password) : IRequest<LoginResponseDto>;

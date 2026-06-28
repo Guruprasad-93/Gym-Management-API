@@ -4,6 +4,7 @@ using Gym.API.IntegrationTests.Infrastructure;
 using Gym.Application.DTOs.Leads;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
+using Gym.Infrastructure.Persistence;
 
 namespace Gym.API.IntegrationTests;
 
@@ -19,7 +20,7 @@ public class LeadManagementTests : IAsyncLifetime
     {
         await _factory.EnsureDatabaseAsync();
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
-        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(_client, "admin@fitzone-demo.com", "Demo@123");
+        await AuthenticatedClientHelper.CreateAuthenticatedClientAsync(_client, DemoDataSeeder.DemoGymAdminLoginIdentifier, "Demo@123");
     }
 
     public Task DisposeAsync() => Task.CompletedTask;

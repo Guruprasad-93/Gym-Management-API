@@ -4,6 +4,7 @@ using Gym.Application.DTOs.Ai;
 using Gym.Application.DTOs.Audit;
 using Gym.Application.DTOs.Booking;
 using Gym.Application.DTOs.Common;
+using Gym.Application.DTOs.MemberSelfService;
 using Gym.Application.DTOs.Members;
 using Gym.Application.DTOs.Mobile;
 using Gym.Application.DTOs.Notifications;
@@ -94,6 +95,16 @@ public class BookingService : IBookingService
         return schedule;
     }
 
+    public async Task<ClassScheduleDto> GetScheduleByIdAsync(int id, CancellationToken cancellationToken = default)
+    {
+        EnsureCanViewBookings();
+        var gymId = GymScopeResolver.ResolveRequired(_currentUser, null);
+        var schedule = await _repository.GetScheduleByIdAsync(gymId, id, cancellationToken);
+        if (schedule is null)
+            throw new KeyNotFoundException("Class schedule not found.");
+        return schedule;
+    }
+
     public async Task<PagedResultDto<ClassScheduleDto>> GetSchedulesAsync(ClassScheduleQueryDto query, CancellationToken cancellationToken = default)
     {
         EnsureCanViewBookings();
@@ -105,13 +116,18 @@ public class BookingService : IBookingService
     {
         EnsureCanManageSchedules();
         var gymId = GymScopeResolver.ResolveRequired(_currentUser, null);
+        var schedule = await _repository.GetScheduleByIdAsync(gymId, id, cancellationToken);
+        if (schedule is null)
+            throw new KeyNotFoundException("Class schedule not found.");
+
         await _repository.DeleteScheduleAsync(gymId, id, cancellationToken);
         await _auditService.LogAsync(new AuditLogEntryDto
         {
             GymId = gymId,
             EntityName = AuditEntityNames.ClassSchedule,
             EntityId = id.ToString(),
-            ActionType = AuditActionTypes.Cancel
+            ActionType = AuditActionTypes.Delete,
+            OldValue = schedule
         }, cancellationToken);
     }
 
@@ -130,7 +146,7 @@ public class BookingService : IBookingService
         if (bookingId <= 0)
             throw new InvalidOperationException(error ?? "Booking failed.");
 
-        var bookings = await _repository.GetBookingsPagedAsync(gymId, new BookingQueryDto { PageNumber = 1, PageSize = 1, MemberId = member.Id }, cancellationToken);
+        var bookings = await _repository.GetBookingsPagedAsync(gymId, new BookingQueryDto { PageNumber = 1, PageSize = 50, MemberId = member.Id }, cancellationToken);
         var booking = bookings.Items.FirstOrDefault(b => b.Id == bookingId)
             ?? throw new InvalidOperationException("Booking not found after creation.");
 
@@ -220,7 +236,7 @@ public class BookingService : IBookingService
         return await _repository.GetBookingsPagedAsync(gymId, query, cancellationToken);
     }
 
-    public async Task<int> CheckInAsync(BookingCheckInDto dto, CancellationToken cancellationToken = default)
+    public async Task<QrScanResultDto> CheckInAsync(BookingCheckInDto dto, CancellationToken cancellationToken = default)
     {
         if (!_currentUser.HasPermission(Permissions.ManageBookings))
             throw new UnauthorizedAccessException("Manage bookings permission required.");
@@ -242,7 +258,13 @@ public class BookingService : IBookingService
             ActionType = AuditActionTypes.CheckIn
         }, cancellationToken);
 
-        return bookingId;
+        var bookings = await _repository.GetBookingsPagedAsync(
+            gymId,
+            new BookingQueryDto { MemberId = memberId, PageNumber = 1, PageSize = 50 },
+            cancellationToken);
+        var booking = bookings.Items.FirstOrDefault(b => b.Id == bookingId);
+
+        return await BuildQrScanResultAsync(gymId, memberId, bookingId, booking, cancellationToken);
     }
 
     public async Task<IReadOnlyList<TrainerScheduleDto>> GetTrainerScheduleAsync(TrainerScheduleQueryDto query, CancellationToken cancellationToken = default)
@@ -346,6 +368,28 @@ public class BookingService : IBookingService
         if (!Guid.TryParse(parts[1], out var gymId) || !int.TryParse(parts[2], out var memberId))
             throw new InvalidOperationException("Invalid QR payload.");
         return (gymId, memberId, parts[3]);
+    }
+
+    private async Task<QrScanResultDto> BuildQrScanResultAsync(
+        Guid gymId,
+        int memberId,
+        int bookingId,
+        SlotBookingDto? booking,
+        CancellationToken cancellationToken)
+    {
+        var member = await _memberRepository.GetByIdAsync(memberId, gymId, null, cancellationToken)
+            ?? throw new KeyNotFoundException("Member not found.");
+
+        return new QrScanResultDto
+        {
+            BookingId = bookingId,
+            MemberId = memberId,
+            MemberName = member.FullName,
+            MembershipStatus = member.MembershipStatus,
+            MembershipPlanName = member.MembershipPlanName,
+            BookingStatus = booking?.Status ?? "CheckedIn",
+            ClassName = booking?.ClassName
+        };
     }
 
     private async Task<MemberResponseDto> ResolveCurrentMemberAsync(CancellationToken cancellationToken)

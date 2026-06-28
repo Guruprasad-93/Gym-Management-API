@@ -311,14 +311,14 @@ public class LeadService : ILeadService
 
         var loginIdentifier = !string.IsNullOrWhiteSpace(dto.LoginIdentifier)
             ? Validation.LoginIdentifierRules.Normalize(dto.LoginIdentifier)
-            : Validation.LoginIdentifierRules.FromEmailLocalPart(email ?? $"lead{lead.Id}");
+            : $"MEM{lead.Id:D6}";
 
         if (string.IsNullOrWhiteSpace(loginIdentifier))
-            loginIdentifier = $"lead{lead.Id}".ToLowerInvariant();
+            loginIdentifier = $"MEM{lead.Id:D6}";
 
         Validation.LoginIdentifierRules.Validate(loginIdentifier);
 
-        if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, gymId, cancellationToken))
+        if (await _userRepository.ExistsByLoginIdentifierAsync(loginIdentifier, cancellationToken))
             throw new InvalidOperationException("A user with this login identifier already exists.");
 
         if (!string.IsNullOrWhiteSpace(email) && await _userRepository.ExistsByEmailAsync(email, cancellationToken))

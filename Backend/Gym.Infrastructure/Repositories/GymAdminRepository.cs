@@ -28,7 +28,7 @@ public class GymAdminRepository : IGymAdminRepository
             UserId = userId,
             GymId = gymId,
             Name = name,
-            LoginIdentifier = loginIdentifier.Trim().ToLowerInvariant(),
+            LoginIdentifier = loginIdentifier.Trim(),
             Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant(),
             Password = passwordHash,
             MustChangePassword = mustChangePassword

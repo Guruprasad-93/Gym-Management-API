@@ -2,6 +2,10 @@
   Trainer Management Module – stored procedures (TRY/CATCH, GymId isolation, soft delete)
 */
 
+IF OBJECT_ID(N'dbo.Members', N'U') IS NOT NULL AND COL_LENGTH('dbo.Members', 'IsDeleted') IS NULL
+    ALTER TABLE dbo.Members ADD IsDeleted BIT NOT NULL CONSTRAINT DF_Members_IsDeleted DEFAULT (0) WITH VALUES;
+GO
+
 /* ========== CREATE ========== */
 CREATE OR ALTER PROCEDURE dbo.sp_CreateTrainer
     @GymId UNIQUEIDENTIFIER,

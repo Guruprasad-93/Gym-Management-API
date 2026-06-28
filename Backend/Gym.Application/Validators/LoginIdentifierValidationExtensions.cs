@@ -9,6 +9,5 @@ public static class LoginIdentifierValidationExtensions
         ruleBuilder
             .NotEmpty()
             .MaximumLength(LoginIdentifierRules.MaxLength)
-            .Matches("^[a-zA-Z0-9._-]+$")
-            .WithMessage("Login identifier may only contain letters, numbers, dots, underscores, and hyphens.");
+            .WithMessage($"Login identifier cannot exceed {LoginIdentifierRules.MaxLength} characters.");
 }

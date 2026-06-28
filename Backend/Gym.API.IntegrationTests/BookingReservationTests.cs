@@ -4,7 +4,9 @@ using Gym.API.IntegrationTests.Infrastructure;
 using Gym.Application.DTOs.Booking;
 using Gym.Application.DTOs.Branches;
 using Gym.Application.DTOs.Common;
+using Gym.Application.DTOs.MemberSelfService;
 using Gym.Application.DTOs.Trainers;
+using Gym.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
@@ -208,10 +210,93 @@ public class BookingReservationTests : IClassFixture<BookingReservationFixture>
     }
 
     [Fact]
+    public async Task BookingQrCheckIn_ReturnsOkWithMemberAndBookingDetails()
+    {
+        await _fixture.AdminClient.PutAsJsonAsync("/api/bookings/settings", new UpdateBookingSettingsDto
+        {
+            MaxBookingsPerDay = 20,
+            AllowWaitlist = true,
+            CancellationWindowHours = 2,
+            ReminderMinutesBefore = 60
+        });
+
+        var qrResponse = await _fixture.MemberClient.GetAsync("/api/member/qr-code");
+        qrResponse.EnsureSuccessStatusCode();
+        var qrData = (await qrResponse.Content.ReadFromJsonAsync<ApiWrapper<MemberQrCodeDto>>())!.Data!;
+
+        var (branchId, trainerId) = await EnsureBranchAndTrainerAsync();
+        var todayDow = (int)DateTime.UtcNow.DayOfWeek;
+        var createSchedule = await _fixture.AdminClient.PostAsJsonAsync("/api/schedules", new CreateClassScheduleDto
+        {
+            BranchId = branchId,
+            ClassName = $"QR Check-In {Guid.NewGuid():N}",
+            TrainerId = trainerId,
+            DayOfWeek = todayDow,
+            StartTime = new TimeSpan(6, 0, 0),
+            EndTime = new TimeSpan(23, 0, 0),
+            Capacity = 10
+        });
+        createSchedule.EnsureSuccessStatusCode();
+        var schedule = (await createSchedule.Content.ReadFromJsonAsync<ApiWrapper<ClassScheduleDto>>())!.Data!;
+
+        var bookResponse = await _fixture.MemberClient.PostAsJsonAsync("/api/bookings/book", new BookSlotDto
+        {
+            ClassScheduleId = schedule.Id,
+            BookingDate = DateTime.UtcNow.Date
+        });
+        Assert.Equal(HttpStatusCode.OK, bookResponse.StatusCode);
+
+        var checkIn = await _fixture.AdminClient.PostAsJsonAsync("/api/booking-checkin", new BookingCheckInDto
+        {
+            QrPayload = qrData.Payload
+        });
+        Assert.Equal(HttpStatusCode.OK, checkIn.StatusCode);
+        var result = await checkIn.Content.ReadFromJsonAsync<ApiWrapper<QrScanResultDto>>();
+        Assert.True(result?.Data?.BookingId > 0);
+        Assert.Equal("CheckedIn", result?.Data?.BookingStatus);
+        Assert.False(string.IsNullOrWhiteSpace(result?.Data?.MemberName));
+        Assert.False(string.IsNullOrWhiteSpace(result?.Data?.ClassName));
+    }
+
+    [Fact]
     public async Task GetMemberBookings_ReturnsOk()
     {
         var response = await _fixture.MemberClient.GetAsync("/api/bookings?pageNumber=1&pageSize=10");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteSchedule_RemovesScheduleAndBookings()
+    {
+        var (branchId, trainerId) = await EnsureBranchAndTrainerAsync();
+        var dayOfWeek = (int)DateTime.UtcNow.AddDays(42).DayOfWeek;
+        var createResponse = await _fixture.AdminClient.PostAsJsonAsync("/api/schedules", new CreateClassScheduleDto
+        {
+            BranchId = branchId,
+            ClassName = $"Delete Test {Guid.NewGuid():N}",
+            TrainerId = trainerId,
+            DayOfWeek = dayOfWeek,
+            StartTime = new TimeSpan(14, 0, 0),
+            EndTime = new TimeSpan(15, 0, 0),
+            Capacity = 5
+        });
+        createResponse.EnsureSuccessStatusCode();
+        var created = await createResponse.Content.ReadFromJsonAsync<ApiWrapper<ClassScheduleDto>>();
+        var scheduleId = created!.Data!.Id;
+
+        var bookingDate = GetBookingDateForDayOfWeek(dayOfWeek, minDaysFromNow: 200);
+        var bookingId = await BookSlotAsync(scheduleId, bookingDate);
+
+        var deleteResponse = await _fixture.AdminClient.DeleteAsync($"/api/schedules/{scheduleId}");
+        Assert.Equal(HttpStatusCode.OK, deleteResponse.StatusCode);
+
+        var getSchedule = await _fixture.AdminClient.GetAsync($"/api/schedules/{scheduleId}");
+        Assert.Equal(HttpStatusCode.NotFound, getSchedule.StatusCode);
+
+        var bookings = await _fixture.AdminClient.GetAsync("/api/bookings?pageNumber=1&pageSize=500");
+        bookings.EnsureSuccessStatusCode();
+        var body = await bookings.Content.ReadFromJsonAsync<ApiWrapper<PagedResultDto<SlotBookingDto>>>();
+        Assert.DoesNotContain(body!.Data!.Items, b => b.Id == bookingId);
     }
 
     private sealed class ApiWrapper<T>

@@ -7,8 +7,6 @@ namespace Gym.Application.Authorization;
 /// </summary>
 public static class MenuPermissionMap
 {
-    private static readonly Dictionary<string, string> PermissionToMenu = BuildPermissionToMenu();
-
     private static readonly Dictionary<string, string[]> MenuToPermissions = new(StringComparer.OrdinalIgnoreCase)
     {
         [MenuCodes.Dashboard] = [Permissions.ViewDashboard, Permissions.ViewAnalytics],
@@ -59,6 +57,8 @@ public static class MenuPermissionMap
         [MenuCodes.GymBranding] = [Permissions.ManageGymBranding],
         [MenuCodes.Settings] = [Permissions.ViewExpenses, Permissions.ViewPayroll, Permissions.ManageGymBranding, Permissions.ManageNotifications],
     };
+
+    private static readonly Dictionary<string, string> PermissionToMenu = BuildPermissionToMenu();
 
     public static string? GetMenuCodeForPermission(string permission)
     {

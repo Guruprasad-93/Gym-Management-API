@@ -23,6 +23,10 @@ public class MemberAttendanceDto
     public DateOnly AttendanceDate { get; set; }
     public DateTime? CheckInAt { get; set; }
     public DateTime? CheckOutAt { get; set; }
+    public string? CheckoutType { get; set; }
+    public bool IsAutoCheckout { get; set; }
+    public bool IsCurrentlyCheckedIn { get; set; }
+    public string? MarkedByName { get; set; }
     public string? Notes { get; set; }
     public DateTime CreatedAt { get; set; }
 }
@@ -52,6 +56,8 @@ public class CheckInMemberDto
 public class CheckOutMemberDto
 {
     public int MemberId { get; set; }
+    public int? MemberAttendanceId { get; set; }
+    public bool IsManualCheckout { get; set; }
     public string? Notes { get; set; }
 }
 
@@ -70,6 +76,8 @@ public class AttendanceQueryDto
     public DateOnly? ToDate { get; set; }
     public int? MemberId { get; set; }
     public int? StatusId { get; set; }
+    public bool? OpenOnly { get; set; }
+    public string? CheckoutTypeFilter { get; set; }
     public string? Search { get; set; }
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;
@@ -83,6 +91,9 @@ public class AttendanceDashboardDto
     public int MembersPresentToday { get; set; }
     public int CurrentlyCheckedIn { get; set; }
     public int AbsentToday { get; set; }
+    public int CheckedOutToday { get; set; }
+    public int AutoCheckedOutToday { get; set; }
+    public int ManualCheckOutToday { get; set; }
 }
 
 public class DailyAttendanceStatusCountDto
@@ -102,6 +113,59 @@ public class DailyAttendanceDetailDto
     public string StatusName { get; set; } = string.Empty;
     public DateTime? CheckInAt { get; set; }
     public DateTime? CheckOutAt { get; set; }
+    public string? CheckoutType { get; set; }
+    public bool IsAutoCheckout { get; set; }
+}
+
+public class AttendanceSettingsDto
+{
+    public Guid GymId { get; set; }
+    public TimeOnly OpeningTime { get; set; }
+    public TimeOnly ClosingTime { get; set; }
+    public bool AutoCheckoutEnabled { get; set; }
+    public bool UseClosingTimeForAutoCheckout { get; set; }
+    public int CheckoutReminderMinutesBefore { get; set; }
+    public string TimeZoneId { get; set; } = "India Standard Time";
+    public bool Is24Hours { get; set; }
+    public int MaximumSessionHours { get; set; } = 12;
+}
+
+public class UpdateAttendanceSettingsDto
+{
+    public TimeOnly OpeningTime { get; set; }
+    public TimeOnly ClosingTime { get; set; }
+    public bool AutoCheckoutEnabled { get; set; }
+    public bool UseClosingTimeForAutoCheckout { get; set; }
+    public int CheckoutReminderMinutesBefore { get; set; }
+    public string TimeZoneId { get; set; } = "India Standard Time";
+    public bool Is24Hours { get; set; }
+    public int MaximumSessionHours { get; set; } = 12;
+}
+
+public class ForgotCheckOutReportQueryDto
+{
+    public DateOnly? FromDate { get; set; }
+    public DateOnly? ToDate { get; set; }
+    public int? MemberId { get; set; }
+    public int? BranchId { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 50;
+}
+
+public class ForgotCheckOutReportItemDto
+{
+    public int MemberId { get; set; }
+    public string MemberName { get; set; } = string.Empty;
+    public int? BranchId { get; set; }
+    public string? BranchName { get; set; }
+    public int TotalAutoCheckOutCount { get; set; }
+    public DateTime? LastAutoCheckOutAt { get; set; }
+    public DateOnly? LastAutoCheckOutDate { get; set; }
+}
+
+public class AttendanceAutoCheckoutResultDto
+{
+    public int ProcessedCount { get; set; }
 }
 
 public class DailyAttendanceReportDto
